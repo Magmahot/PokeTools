@@ -1,0 +1,1923 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#0f0f12">
+    <title>Pokétools</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;500;600;700&family=Bangers&family=MedievalSharp&family=Mountains+of+Christmas&family=Poppins:wght@400;600&family=Fredoka+One&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script type="importmap">
+    {
+      "imports": {
+        "@capacitor/core": "./capacitor-core.js",
+        "@capacitor/haptics": "./capacitor-haptics.js",
+        "@capacitor/app": "./capacitor-app.js"
+      }
+    }
+    </script>
+
+    <style>
+        /* =========================================
+           CORE FIXES FOR NATIVE FEEL
+           ========================================= */
+        html { background-color: #050505; }
+
+        :root {
+            --bg-app: #f4f4f8; 
+            --bg-panel: #ffffff; 
+            --text-main: #1a1a1a; 
+            --text-muted: #666;
+            --primary: #ff003c; 
+            --glass: rgba(255, 255, 255, 0.95); 
+            --glass-border: 1px solid rgba(0,0,0,0.05);
+            --nav-height: 50px; 
+            --safe-bottom: env(safe-area-inset-bottom, 20px); 
+            --card-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            --ease-smooth: cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+
+        html, body {
+            margin: 0; padding: 0;
+            width: 100%; height: 100%;
+            overflow: hidden; 
+            position: fixed; inset: 0;
+            font-family: 'Rajdhani', sans-serif; 
+            background-color: var(--bg-app); 
+            color: var(--text-main); 
+            -webkit-tap-highlight-color: transparent;
+            overscroll-behavior: none;
+        }
+
+        #app-container { width: 100%; height: 100%; position: relative; z-index: 1; }
+
+        .view { 
+            position: absolute; inset: 0;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            opacity: 0; pointer-events: none; 
+            transform: scale(0.98); 
+            transition: opacity 0.3s var(--ease-smooth), transform 0.3s var(--ease-smooth);
+            z-index: 1;
+        }
+        
+        .view::-webkit-scrollbar { display: none; }
+        
+        .glass-header { 
+            flex-shrink: 0;
+            position: relative;
+            background: var(--glass); backdrop-filter: blur(20px); border-bottom: var(--glass-border); padding: 10px 15px; padding-top: env(safe-area-inset-top); z-index: 100; box-shadow: 0 4px 20px rgba(0,0,0,0.03); 
+        }
+        
+        .view-content {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            -webkit-overflow-scrolling: touch;
+            padding-bottom: calc(var(--nav-height) + var(--safe-bottom) + 20px);
+        }
+        
+        .scroll-force-wrapper { 
+            transform-origin: top center;
+            will-change: transform;
+        }
+        .view.active { opacity: 1; pointer-events: auto; transform: scale(1); z-index: 10; }
+        * { box-sizing: border-box; }
+
+        /* =========================================
+           THEME ENGINE
+           ========================================= */
+        body.theme-glass { --bg-app: #0f172a; --bg-panel: rgba(30, 41, 59, 0.5); --text-main: #e2e8f0; --text-muted: #94a3b8; --primary: #00f3ff; --glass: rgba(15, 23, 42, 0.65); --glass-border: 1px solid rgba(0, 243, 255, 0.2); --card-shadow: 0 0 15px rgba(0, 243, 255, 0.1); background: radial-gradient(circle at 0% 0%, rgba(255,0,60,0.15) 0%, transparent 50%), radial-gradient(circle at 100% 100%, rgba(0,243,255,0.15) 0%, transparent 50%), #050505; background-attachment: fixed; background-size: cover; }
+        body.theme-dark { --bg-app: #050505; --bg-panel: #111; --text-main: #eee; --primary: #ff3e3e; --glass: rgba(20,20,20,0.85); --glass-border: 1px solid #222; }
+        body.theme-blue-dark { --bg-app: #020a1c; --bg-panel: #0a1930; --text-main: #dbeafe; --primary: #3b82f6; --glass: rgba(10, 25, 48, 0.85); --glass-border: 1px solid #1e3a8a; }
+        body.theme-forest { --bg-app: #0a1f0a; --bg-panel: #142b14; --text-main: #e0ffe0; --text-muted: #8fbc8f; --primary: #00ff7f; --glass: rgba(10, 30, 10, 0.85); --glass-border: 1px solid #228b22; }
+        body.theme-vapor { --bg-app: #2b003b; --bg-panel: rgba(71, 0, 99, 0.92); --text-main: #ffd6ff; --text-muted: #e6bfe6; --primary: #00ffff; --glass: rgba(71, 0, 99, 0.85); --glass-border: 1px solid #ff00ff; background: linear-gradient(180deg, #2b003b 0%, #1a0024 100%); }
+        body.theme-solar { --bg-app: #1a0f00; --bg-panel: #331a00; --text-main: #ffecd9; --text-muted: #cc8800; --primary: #ff8800; --glass: rgba(50, 20, 0, 0.85); --glass-border: 1px solid #ff4500; }
+        body.theme-royal { --bg-app: #1a000d; --bg-panel: #33001a; --text-main: #fff5e6; --text-muted: #d4af37; --primary: #d4af37; --glass: rgba(40, 0, 20, 0.85); --glass-border: 1px solid #d4af37; }
+        body.theme-ice { --bg-app: #f0faff; --bg-panel: #ffffff; --text-main: #2c3e50; --text-muted: #7f8c8d; --primary: #00ced1; --glass: rgba(255, 255, 255, 0.8); --glass-border: 1px solid #00ced1; }
+        body.theme-toxic { --bg-app: #0d0d0d; --bg-panel: #1a1a1a; --text-main: #ccff00; --text-muted: #88aa00; --primary: #ccff00; --glass: rgba(20, 20, 20, 0.9); --glass-border: 1px solid #ccff00; font-family: 'Courier New', monospace; }
+        
+        body.theme-midnight-dragon { --bg-app: #0a0e27; --bg-panel: rgba(26,31,58,0.88); --text-main: #e8f0fe; --text-muted: #a6b6d6; --primary: #7c3aed; --glass: rgba(26, 31, 58, 0.75); --glass-border: 1px solid rgba(124, 58, 237, 0.4); --card-shadow: 0 0 20px rgba(124, 58, 237, 0.15); background: linear-gradient(135deg, #0a0e27 0%, #1a0d2e 50%, #1a1f3a 100%); background-attachment: fixed; }
+        body.theme-neon-surge { --bg-app: #0d0010; --bg-panel: rgba(26,13,31,0.92); --text-main: #fff6fb; --text-muted: #f3cfe9; --primary: #ff006e; --glass: rgba(26, 13, 31, 0.85); --glass-border: 1px solid rgba(255, 0, 110, 0.45); --card-shadow: 0 0 25px rgba(255, 0, 110, 0.22); background: linear-gradient(45deg, #0d0010 0%, #2d0a3d 50%, #1a0d1f 100%); background-attachment: fixed; }
+        body.theme-retro-arcade { --bg-app: #1a0033; --bg-panel: rgba(51,0,102,0.9); --text-main: #e6ffe8; --text-muted: #bff8d6; --primary: #ffff00; --glass: rgba(51, 0, 102, 0.9); --glass-border: 1px solid #00ff99; --card-shadow: 0 0 15px rgba(0, 255, 153, 0.25); background: repeating-linear-gradient(0deg, rgba(255,255,0,0.05) 0px, rgba(255,255,0,0.05) 2px, transparent 2px, transparent 4px), #1a0033; background-attachment: fixed; }
+        body.theme-mystic-aurora { --bg-app: #0d1b2a; --bg-panel: rgba(26,46,66,0.9); --text-main: #dff9ff; --text-muted: #9fe6f7; --primary: #00d9ff; --glass: rgba(26, 46, 66, 0.78); --glass-border: 1px solid rgba(0, 217, 255, 0.38); --card-shadow: 0 0 20px rgba(0, 217, 255, 0.18); background: radial-gradient(ellipse at 20% 50%, rgba(0, 217, 255, 0.1) 0%, transparent 50%), radial-gradient(ellipse at 80% 80%, rgba(100, 150, 255, 0.08) 0%, transparent 50%), #0d1b2a; background-attachment: fixed; }
+        body.theme-chaos-theory { --bg-app: #1a0a1a; --bg-panel: rgba(45,26,45,0.9); --text-main: #ffebff; --text-muted: #ffc6ff; --primary: #ff00ff; --glass: rgba(45, 26, 45, 0.88); --glass-border: 1px solid rgba(255, 0, 255, 0.5); --card-shadow: 0 0 25px rgba(255, 0, 255, 0.22); background: linear-gradient(180deg, #1a0a1a 0%, #3d1a4d 50%, #2d0a3d 100%); background-attachment: fixed; }
+        body.theme-pikachu { --bg-app: #fff6c8; --bg-panel: #fff9e6; --text-main: #1a1a1a; --text-muted: #6b5b3b; --primary: #ffcb05; --glass: rgba(255, 255, 255, 0.95); --glass-border: 1px solid rgba(0,0,0,0.06); font-family: 'Fredoka One', 'Bangers', cursive; }
+        body.theme-pikachu .app-brand::after { content: '⚡'; margin-left: 10px; color: #ffcb05; font-size: 0.9rem; text-shadow: 0 2px 6px rgba(255,203,5,0.4); }
+        body.theme-pikachu .dex-card { box-shadow: 0 6px 20px rgba(255, 203, 5, 0.06); }
+
+        body.theme-charizard { --bg-app: #120703; --bg-panel: rgba(31,20,16,0.92); --text-main: #fffaf5; --text-muted: #e3c9b6; --primary: #ff6a00; --glass: rgba(31, 20, 16, 0.88); --glass-border: 1px solid rgba(255, 106, 0, 0.4); font-family: 'MedievalSharp', 'Fredoka One', cursive; }
+        body.theme-charizard .app-brand::after { content: '🔥'; margin-left: 10px; color: #ff6a00; font-size: 0.9rem; filter: drop-shadow(0 6px 20px rgba(255,106,0,0.12)); }
+        body.theme-charizard .type-card-header { text-shadow: 0 4px 18px rgba(255,106,0,0.08); }
+        
+        body.theme-pride { --bg-app: #ffffff; --bg-panel: #ffffff; --text-main: #111111; --text-muted: #555555; --primary: #000000; --glass: rgba(255,255,255,0.96); --glass-border: 1px solid rgba(0,0,0,0.06); font-family: 'Poppins', sans-serif; }
+        .theme-pride .glass-header { position: relative; overflow: visible; }
+        .theme-pride .glass-header::after { content: ''; position: absolute; left: 0; right: 0; bottom: -2px; height: 4px; background: linear-gradient(90deg, rgb(228,3,3), rgb(255,140,0), rgb(255,237,0), rgb(0,128,38), rgb(0,77,255), rgb(117,7,135), rgb(255,0,128), rgb(0,255,255), rgb(128,0,255)); background-size: 400% 100%; animation: prideWave 6s linear infinite; border-radius:4px; }
+        @keyframes prideWave { 0% { background-position: 0% 0%; } 50% { background-position: 100% 0%; } 100% { background-position: 0% 0%; } }
+
+        /* =========================================
+           UI COMPONENTS
+           ========================================= */
+        .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; height: calc(var(--nav-height) + var(--safe-bottom)); background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(20px); border-top: 1px solid rgba(0,0,0,0.05); display: flex; justify-content: space-around; padding-bottom: var(--safe-bottom); z-index: 1000; box-shadow: 0 -5px 20px rgba(0,0,0,0.05); touch-action: none; }
+        body:not(.theme-default):not(.theme-ice) .bottom-nav { background: rgba(0, 0, 0, 0.8); border-top: 1px solid rgba(255,255,255,0.1); }
+        .nav-item { background: none; border: none; flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-main); transition: 0.2s; cursor: pointer; gap: 4px; }
+        .nav-item i { font-size: 1.2rem; transition: transform 0.3s; }
+        .nav-item span { font-size: 0.6rem; font-weight: 700; font-family: 'Orbitron'; letter-spacing: 1px; color: inherit; }
+        .nav-item.active { color: var(--primary); }
+        .nav-item.active i { transform: translateY(-3px) scale(1.1); text-shadow: 0 0 15px var(--primary); }
+
+        .app-brand { display: flex; align-items: center; justify-content: center; gap: 10px;font-family: 'Orbitron'; font-weight: 900; font-size: 1.4rem; color: var(--text-main); letter-spacing: 2px; font-size:xx-large;}
+        .app-brand span { color: var(--primary); }
+        .search-row { display: flex; gap: 10px; margin-bottom: 5px; height: 48px; }
+        .search-bar-wrapper { flex: 1; display: flex; align-items: center; background: rgba(128,128,128,0.08); border: var(--glass-border); border-radius: 12px; padding: 0 15px; height: 100%; }
+        .search-bar-wrapper input { background: transparent; border: none; flex: 1; margin-left: 10px; color: var(--text-main); font-family: 'Rajdhani'; font-size: 1.1rem; outline: none; text-transform: capitalize; }
+        .icon-btn { width: 48px; height: 100%; border-radius: 12px; border: var(--glass-border); background: var(--bg-panel); color: var(--text-main); font-size: 1.2rem; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+        
+        .chip-scroller-container { position: relative; width: 100%; height: 40px; margin-top: 10px; overflow: hidden; }
+        .chip-scroller { display: flex; overflow-x: auto; gap: 0; padding-bottom: 20px; scrollbar-width: none; -webkit-overflow-scrolling: touch; pointer-events: auto; position: relative; height: 60px; align-items: flex-start; }
+        .chip-glider { position: absolute; top: 0; left: 0; height: 32px; background: var(--primary); border-radius: 20px; transition: transform 0.3s var(--ease-smooth), width 0.3s var(--ease-smooth); z-index: 1; box-shadow: 0 2px 10px var(--primary); pointer-events: none; }
+        .filter-chip { padding: 6px 16px; margin-right: 8px; border-radius: 20px; border: none; background: transparent; color: var(--text-muted); font-family: 'Orbitron'; font-size: 0.75rem; white-space: nowrap; cursor: pointer; position: relative; z-index: 2; transition: color 0.3s; height: 32px; }
+        .filter-chip.active { color: #fff; font-weight: bold; }
+
+        .dex-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(105px, 1fr)); gap: 12px; padding: 15px; }
+        .dex-card { background: var(--bg-panel); border-radius: 16px; padding: 10px; text-align: center; border: var(--glass-border); box-shadow: var(--card-shadow); position: relative; overflow: hidden; cursor: pointer; }
+        .dex-card:active { transform: scale(0.95); transition: 0.2s; }
+        .dex-card img { width: 85px; height: 85px; object-fit: contain; z-index: 2; position: relative; }
+        .dex-card .name { text-transform: capitalize; font-weight: bold; font-size: 0.9rem; margin-top: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .dex-card .id { font-size: 0.7rem; color: var(--primary); font-family: 'Orbitron'; position: absolute; top: 8px; left: 10px; opacity: 0.5; }
+
+        .team-container { padding: 15px; }
+        .team-slots { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 25px; }
+        .team-slot { height: 120px; border-radius: 16px; border: 2px dashed rgba(128,128,128,0.3); display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(0,0,0,0.02); cursor: pointer; position: relative; }
+        .team-slot.filled { border: 1px solid var(--glass-border); background: var(--bg-panel); box-shadow: var(--card-shadow); border-style: solid; }
+        .team-slot img { width: 65px; height: 65px; object-fit: contain; margin-bottom: 5px; }
+        .slot-name { text-transform: capitalize; font-weight: bold; font-size: 0.9rem; }
+        .slot-remove { position: absolute; top: -8px; right: -8px; width: 24px; height: 24px; background: var(--primary); color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; z-index: 10; }
+
+        .type-card { background: var(--bg-panel); border-radius: 16px; margin-bottom: 15px; border: var(--glass-border); box-shadow: var(--card-shadow); overflow: hidden; position: relative; }
+        .type-card-header { padding: 15px; display: flex; justify-content: space-between; align-items: center; color: white; position: relative; overflow: hidden; text-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+        .type-card-header::after { content: ''; position: absolute; top:0; left:0; width:100%; height:100%; background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(0,0,0,0.1) 100%); }
+        .type-card-title { font-family: 'Orbitron'; font-size: 1.2rem; font-weight: 900; text-transform: uppercase; letter-spacing: 2px; position: relative; z-index: 2; }
+        .type-stats-summary { font-size: 0.65rem; background: rgba(0,0,0,0.2); padding: 4px 10px; border-radius: 20px; font-weight: bold; position: relative; z-index: 2; backdrop-filter: blur(5px); }
+        .type-data-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 10px; }
+        .type-panel { background: rgba(0,0,0,0.02); border-radius: 12px; padding: 10px; border: 1px solid rgba(0,0,0,0.03); }
+        .panel-title { font-size: 0.7rem; font-weight: 900; color: var(--text-muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; display: flex; align-items: center; gap: 5px; border-bottom: 1px solid rgba(0,0,0,0.05); padding-bottom: 5px; }
+        .mini-type-pill { padding: 3px 8px; border-radius: 6px; color: white; font-size: 0.65rem; font-weight: bold; text-transform: uppercase; margin-right: 3px; margin-bottom: 3px; display: inline-block; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        
+        .type-normal { background: #A8A878; } .type-fire { background: #F08030; } .type-water { background: #6890F0; } .type-grass { background: #78C850; } .type-electric { background: #F8D030; } .type-ice { background: #98D8D8; } .type-fighting { background: #C03028; } .type-poison { background: #A040A0; } .type-ground { background: #E0C068; } .type-flying { background: #A890F0; } .type-psychic { background: #F85888; } .type-bug { background: #A8B820; } .type-rock { background: #B8A038; } .type-ghost { background: #705898; } .type-dragon { background: #7038F8; } .type-dark { background: #705848; } .type-steel { background: #B8B8D0; } .type-fairy { background: #EE99AC; }
+
+        .ability-box-container { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+        .ability-card { 
+            background: rgba(0,0,0,0.03); border: 1px solid rgba(var(--primary), 0.3); 
+            border-radius: 8px; padding: 12px; position: relative; overflow: hidden;
+            transition: all 0.2s ease; cursor: pointer;
+        }
+        .ability-card:active { transform: scale(0.98); background: rgba(var(--primary), 0.05); }
+        .ability-card::before {
+            content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%;
+            background: var(--primary); box-shadow: 0 0 10px var(--primary);
+        }
+        .ability-name-text { font-family: 'Orbitron'; font-size: 0.8rem; font-weight: bold; color: var(--text-main); margin-bottom: 2px; text-transform: uppercase; }
+        .ability-meta { font-size: 0.65rem; color: var(--primary); text-transform: uppercase; letter-spacing: 1px; opacity: 0.8; }
+
+        .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 2000; display: none; backdrop-filter: blur(4px); align-items: center; justify-content: center; }
+        .modal.open { display: flex; animation: fadeIn 0.2s ease; }
+        .modal-content { background: var(--bg-app); width: 100%; height: 85vh; border-radius: 25px 25px 0 0; padding: 20px; padding-bottom: 80px; overflow-y: auto; align-self: flex-end; z-index: 201; animation: slideUp 0.3s cubic-bezier(0.1, 0.9, 0.2, 1); }
+        .sheet-modal { align-items: flex-end; }
+        .sheet-content { background: var(--bg-panel); width: 100%; padding: 25px; border-radius: 25px 25px 0 0; border-top: var(--glass-border); box-shadow: 0 -10px 40px rgba(0,0,0,0.2); animation: slideUp 0.3s ease; }
+        .mini-modal-box { width: 85%; background: var(--bg-panel); padding: 20px; border-radius: 20px; text-align: center; border: var(--glass-border); box-shadow: 0 10px 40px rgba(0,0,0,0.3); animation: zoomIn 0.2s ease; }
+        .glass-select { width: 100%; padding: 12px; border-radius: 12px; background: var(--bg-app); border: var(--glass-border); color: var(--text-main); font-family: 'Rajdhani'; font-size: 1rem; outline: none; appearance: none; -webkit-appearance: none; -moz-appearance: none; background-image: none; }
+        
+        .gimmick-row { display: flex; justify-content: center; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+        .gimmick-badge { padding: 5px 10px; border-radius: 4px; font-size: 0.7rem; font-family: 'Orbitron'; background: linear-gradient(45deg, #ff00cc, #333399); color: white; box-shadow: 0 0 10px rgba(255,0,204,0.4); text-transform: uppercase; animation: pulse 2s infinite; }
+        .gimmick-badge.mega { background: linear-gradient(45deg, #19a186, #f2cf1b); box-shadow: 0 0 10px rgba(25,161,134,0.4); }
+        .gimmick-badge.gmax { background: linear-gradient(45deg, #ff3333, #660000); box-shadow: 0 0 10px rgba(255,51,51,0.4); }
+        .gimmick-badge.legend { background: linear-gradient(45deg, #FFD700, #FDB931); color: #000; box-shadow: 0 0 10px rgba(255,215,0,0.4); }
+        .gimmick-badge.myth { background: linear-gradient(45deg, #E6E6FA, #D8BFD8); color: #333; box-shadow: 0 0 10px rgba(230,230,250,0.4); }
+
+        .loader-overlay { position: fixed; inset: 0; background: #000; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .holo-ring { width: 50px; height: 50px; border: 3px solid rgba(255,255,255,0.1); border-top: 3px solid var(--primary); border-radius: 50%; animation: spin 1s linear infinite; }
+        .progress-bar { width: 200px; height: 4px; background: rgba(255,255,255,0.1); margin-top: 20px; border-radius: 2px; }
+        .progress-fill { height: 100%; width: 0%; background: var(--primary); transition: width 0.2s; box-shadow: 0 0 10px var(--primary); }
+        .setting-btn { width: 100%; padding: 15px; margin-bottom: 10px; border: var(--glass-border); border-radius: 10px; background: var(--bg-panel); color: var(--text-main); font-family: 'Rajdhani'; font-weight: bold; }
+        .action-btn { width: 100%; padding: 15px; background: var(--primary); color: #fff; border: none; border-radius: 12px; font-family: 'Orbitron'; font-size: 1rem; margin-top: 10px; box-shadow: 0 0 15px var(--primary); }
+        .flux-fab { position: fixed; bottom: 80px; right: 20px; width: 55px; height: 55px; border-radius: 50%; background: var(--primary); color: #fff; border: none; font-size: 1.4rem; box-shadow: 0 0 20px var(--primary); z-index: 90; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+
+        .credit-card { text-align: center; border: 1px solid var(--primary); box-shadow: 0 0 15px rgba(var(--primary), 0.2); padding: 25px !important; margin-top: 20px; background: linear-gradient(45deg, rgba(0,0,0,0.02) 0%, rgba(0,0,0,0.05) 100%); border-radius: 16px; } 
+        .credit-header { font-family: 'Orbitron'; font-size: 0.7rem; letter-spacing: 3px; color: var(--text-muted); margin-bottom: 10px; } 
+        .credit-name { font-family: 'Orbitron'; font-size: 2rem; font-weight: 900; color: var(--text-main); margin-bottom: 10px; letter-spacing: 1px; } 
+        .credit-link { display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; background: #ff0000; color: white; text-decoration: none; border-radius: 50px; font-weight: bold; font-size: 1rem; transition: transform 0.2s; box-shadow: 0 4px 15px rgba(255,0,0,0.4); margin-bottom: 10px;} 
+        .credit-link:active { transform: scale(0.95); } 
+        .credit-sub { margin-top: 10px; font-size: 0.7rem; color: var(--text-muted); font-family: 'Rajdhani'; }
+
+        .mini-search-container { width: 90%; max-height: 60vh; display: flex; flex-direction: column; background: var(--bg-panel); border-radius: 20px; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.5); border: var(--glass-border); margin: auto; }
+        .mini-search-box { padding: 15px; border-bottom: 1px solid rgba(0,0,0,0.05); display: flex; align-items: center; gap: 10px; background: rgba(0,0,0,0.02); }
+        .mini-search-box input { width: 100%; background: transparent; border: none; font-size: 1rem; color: var(--text-main); outline: none; text-transform: capitalize; }
+        .mini-result-item { padding: 10px 15px; border-bottom: 1px solid rgba(0,0,0,0.05); display: flex; align-items: center; gap: 15px; cursor: pointer; text-transform: capitalize; }
+        .mini-result-item img { width: 45px; height: 45px; object-fit: contain; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1)); }
+
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        @keyframes zoomIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideDown { from { transform: translateY(0); opacity: 1; } to { transform: translateY(20%); opacity: 0; } }
+        @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
+        @keyframes overscrollBounce { 0% { transform: scaleY(1); } 50% { transform: scaleY(1.05); } 100% { transform: scaleY(1); } }
+
+        .modal.closing { animation: fadeOut 0.25s ease forwards; pointer-events: none; }
+        .modal.closing .modal-content, .modal.closing .sheet-content, .modal.closing .mini-modal-box, .modal.closing .mini-search-container { animation: slideDown 0.25s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+
+        .switch-container { display: flex; align-items: center; justify-content: space-between; padding: 15px; background: var(--bg-panel); border: var(--glass-border); border-radius: 12px; margin-bottom: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.02); }
+        .switch-label-text { font-family: 'Rajdhani'; font-weight: bold; font-size: 1rem; color: var(--text-main); display: flex; align-items: center; gap: 10px; }
+        .switch { position: relative; display: inline-block; width: 55px; height: 28px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(128,128,128,0.2); transition: .4s; border-radius: 34px; border: 1px solid rgba(0,0,0,0.05); }
+        .slider:before { position: absolute; content: ""; height: 22px; width: 22px; left: 3px; bottom: 2px; background-color: white; transition: cubic-bezier(0.4, 0.0, 0.2, 1) 0.4s; border-radius: 50%; box-shadow: 0 2px 6px rgba(0,0,0,0.3); z-index: 2; }
+        input:checked + .slider { background-color: var(--primary); box-shadow: 0 0 15px var(--primary); border-color: var(--primary); }
+        input:checked + .slider:before { transform: translateX(26px); background-color: #fff; }
+        @keyframes switchPulse { 0% { box-shadow: 0 0 0 0 rgba(var(--primary), 0.7); } 70% { box-shadow: 0 0 0 10px rgba(0,0,0,0); } 100% { box-shadow: 0 0 0 0 rgba(0,0,0,0); } }
+        input:checked + .slider { animation: switchPulse 0.5s ease-out; }
+
+        /* =========================================
+           DETAILED VIEW UPGRADES
+           ========================================= */
+        .section-title { color: var(--primary); font-family: 'Orbitron'; font-size: 0.9rem; margin-top: 0; margin-bottom: 15px; border-bottom: 1px solid rgba(0,0,0,0.1); padding-bottom: 5px; display:flex; align-items:center; gap:8px;}
+        .info-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 15px; }
+        .info-item { background: rgba(0,0,0,0.03); padding: 10px; border-radius: 8px; border: 1px solid rgba(0,0,0,0.05); }
+        .info-label { font-size: 0.65rem; color: var(--text-muted); font-family: 'Orbitron'; letter-spacing: 1px; margin-bottom: 4px; }
+        .info-value { font-size: 0.9rem; font-weight: bold; color: var(--text-main); }
+
+        /* Shiny & Forms Expanded */
+        .sprite-showcase { display: flex; flex-wrap: nowrap; overflow-x: auto; gap: 15px; padding-bottom: 15px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+        .sprite-box { flex: 0 0 100px; background: var(--bg-panel); border: var(--glass-border); border-radius: 12px; padding: 10px; text-align: center; position: relative; cursor: pointer; transition: transform 0.2s; box-shadow: var(--card-shadow); }
+        .sprite-box:active { transform: scale(0.95); }
+        .sprite-box img { width: 70px; height: 70px; object-fit: contain; }
+        .sprite-label { font-size: 0.7rem; color: var(--text-muted); margin-top: 5px; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .shiny-icon { position: absolute; top: 5px; right: 5px; color: #FFD700; font-size: 0.8rem; text-shadow: 0 0 5px #FFD700; }
+        .form-tag { position: absolute; top: 5px; left: 5px; font-size: 0.6rem; padding: 2px 4px; background: var(--primary); color: white; border-radius: 4px; font-weight: bold; }
+
+        /* Relations */
+        .relation-group { margin-bottom: 10px; }
+        .relation-label { font-size: 0.75rem; margin-bottom: 5px; color: var(--text-muted); display: flex; justify-content: space-between; }
+        .type-row { display: flex; flex-wrap: wrap; gap: 5px; }
+
+        /* Moves Accordion */
+        .move-accordion { border: var(--glass-border); border-radius: 10px; overflow: hidden; margin-bottom: 8px; background: rgba(0,0,0,0.02); }
+        .accordion-header { padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; background: rgba(0,0,0,0.05); font-family: 'Rajdhani'; font-weight: bold; transition: background 0.2s; }
+        .accordion-header:active { background: rgba(var(--primary), 0.1); }
+        .accordion-content { display: none; padding: 0; }
+        .accordion-content.expanded { display: block; animation: slideUp 0.2s ease; }
+        .move-row { display: grid; grid-template-columns: 2fr 1fr 1fr; padding: 12px 15px; border-bottom: 1px solid rgba(0,0,0,0.05); align-items: center; gap: 10px; }
+        .move-row:last-child { border-bottom: none; }
+        .move-name { font-weight: bold; font-size: 0.9rem; text-transform: capitalize; }
+        .move-meta { font-size: 0.7rem; color: var(--text-muted); display: flex; flex-direction: column; gap: 2px; }
+        .move-type-badge { font-size: 0.6rem; padding: 2px 6px; border-radius: 4px; color: white; width: fit-content; text-transform: uppercase; }
+        .move-detail-row { grid-column: 1 / -1; font-size: 0.8rem; color: var(--text-muted); padding-top: 5px; font-style: italic; background: rgba(0,0,0,0.02); padding: 8px; border-radius: 6px; margin-top: 5px; display: none; }
+        .move-row.active .move-detail-row { display: block; }
+
+        /* Encounters */
+        .encounter-select-wrapper { position: relative; margin-bottom: 10px; }
+        .encounter-list { max-height: 200px; overflow-y: auto; font-size: 0.85rem; }
+        .encounter-item { padding: 8px 0; border-bottom: 1px solid rgba(0,0,0,0.05); display: flex; justify-content: space-between; }
+        .encounter-loc { font-weight: 600; text-transform: capitalize; }
+        .encounter-method { font-size: 0.75rem; color: var(--text-muted); background: rgba(0,0,0,0.05); padding: 2px 6px; border-radius: 4px; }
+        
+        /* Sprite Toggle & Offline UI */
+        .sprite-toggle-wrapper { display: flex; justify-content: center; margin-bottom: 15px; position: relative; z-index: 10; }
+        .sprite-toggle { display: flex; background: rgba(0,0,0,0.3); backdrop-filter: blur(10px); border-radius: 30px; padding: 4px; border: var(--glass-border); box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .toggle-btn { padding: 8px 16px; border: none; background: transparent; color: var(--text-muted); font-family: 'Orbitron'; font-size: 0.7rem; cursor: pointer; border-radius: 20px; transition: all 0.3s ease; text-transform: uppercase; letter-spacing: 1px; }
+        .toggle-btn.active { background: var(--primary); color: #fff; box-shadow: 0 0 15px var(--primary); font-weight: bold; }
+
+        .main-sprite { transition: opacity 0.3s ease, filter 0.3s ease, transform 0.5s ease-in-out; cursor: pointer; }
+        .main-sprite:active { transform: scale(0.95); }
+        .main-sprite.swapping { opacity: 0; filter: blur(10px); transform: scale(0.9); }
+
+        .offline-toast { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%) translateY(20px); background: rgba(20,20,20,0.95); border: 1px solid var(--primary); color: #fff; padding: 12px 20px; border-radius: 12px; font-family: 'Rajdhani'; font-weight: bold; box-shadow: 0 5px 20px rgba(0,0,0,0.5); z-index: 3000; opacity: 0; pointer-events: none; transition: 0.3s ease; display: flex; align-items: center; gap: 10px; min-width: 280px; justify-content: center; }
+        .offline-toast.visible { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+        /* =========================================
+           NEW: SPRITE VIEWER MODAL
+           ========================================= */
+        #sprite-viewer-modal { background: #000; display: none; align-items: center; justify-content: center; z-index: 9999; }
+        #sprite-viewer-modal.open { display: flex; animation: fadeIn 0.3s ease; }
+        .viewer-content { width: 100%; height: 100%; display: flex; flex-direction: column; position: relative; }
+        .viewer-header { position: absolute; top: 0; left: 0; width: 100%; padding: 20px; padding-top: max(20px, env(safe-area-inset-top)); display: flex; justify-content: space-between; z-index: 10; background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent); pointer-events: none; }
+        .viewer-header > * { pointer-events: auto; }
+        .viewer-title { color: #fff; font-family: 'Orbitron'; font-size: 1.2rem; text-shadow: 0 0 10px var(--primary); }
+        .viewer-close { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); width: 40px; height: 40px; border-radius: 50%; color: white; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+        
+        .viewer-canvas { flex: 1; overflow: hidden; display: flex; align-items: center; justify-content: center; position: relative; touch-action: none; }
+        .viewer-image { max-width: 90%; max-height: 80%; object-fit: contain; transition: transform 0.1s linear; filter: drop-shadow(0 0 20px rgba(255,255,255,0.1)); }
+        
+        .viewer-controls { position: absolute; bottom: 40px; left: 0; width: 100%; display: flex; justify-content: center; gap: 20px; z-index: 10; padding-bottom: env(safe-area-inset-bottom); pointer-events: none; }
+        .viewer-btn { pointer-events: auto; background: rgba(20,20,20,0.8); border: 1px solid var(--primary); color: white; padding: 12px 25px; border-radius: 30px; font-family: 'Orbitron'; font-size: 0.9rem; display: flex; align-items: center; gap: 8px; backdrop-filter: blur(10px); box-shadow: 0 0 15px rgba(0,0,0,0.5); cursor: pointer; transition: transform 0.2s; }
+        .viewer-btn:active { transform: scale(0.95); background: var(--primary); }
+        /* =========================================
+   NEW: EVOLUTION CHART STYLES
+   ========================================= */
+.evo-container {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    overflow-x: auto;
+    padding-bottom: 10px;
+}
+
+.evo-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    background: rgba(0,0,0,0.02);
+    border-radius: 12px;
+    padding: 10px;
+    border: 1px solid rgba(0,0,0,0.03);
+}
+
+.evo-stage {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    min-width: 70px;
+    position: relative;
+}
+
+.evo-stage img {
+    width: 60px;
+    height: 60px;
+    object-fit: contain;
+    filter: drop-shadow(0 4px 4px rgba(0,0,0,0.1));
+    transition: transform 0.2s;
+}
+
+.evo-stage:active img { transform: scale(0.9); }
+
+.evo-name {
+    font-size: 0.7rem;
+    font-weight: bold;
+    margin-top: 5px;
+    text-transform: capitalize;
+    color: var(--text-main);
+}
+
+.evo-arrow {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-width: 60px;
+}
+
+.evo-arrow i { color: var(--text-muted); font-size: 0.8rem; opacity: 0.5; margin: 2px 0; }
+
+.evo-condition {
+    font-size: 0.6rem;
+    color: var(--primary);
+    background: rgba(var(--primary), 0.1);
+    padding: 2px 6px;
+    border-radius: 4px;
+    text-align: center;
+    max-width: 80px;
+    line-height: 1.2;
+    font-weight: bold;
+    font-family: 'Orbitron';
+}
+/* =========================================
+   NEW: CRY BUTTON & AUDIO
+   ========================================= */
+/* UPDATED: HIGH VISIBILITY CRY BUTTON */
+.cry-btn {
+    position: absolute;
+    bottom: 5px;   /* Moved up slightly */
+    right: 5px;    /* Moved left slightly */
+    width: 50px;   /* Made slightly bigger */
+    height: 50px;
+    border-radius: 50%;
+    /* High Contrast Colors */
+    background: var(--primary); 
+    color: #fff;
+    border: 2px solid #fff;
+    /* Glow Effect */
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3), 0 0 10px var(--primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+    cursor: pointer;
+    z-index: 100; /* Force it on top of everything */
+    transition: all 0.2s ease;
+}
+
+.cry-btn:active { 
+    transform: scale(0.9); 
+    filter: brightness(1.2);
+}
+
+.cry-btn i { pointer-events: none; }
+/* =========================================
+   NEW: MOVE UI V2 (Search + Filter Chips)
+   ========================================= */
+   /* =========================================
+   NEW: MOVE UI V2 (Search + Filter Chips)
+   ========================================= */
+.move-controls-v2 {
+    position: sticky;
+    top: 0;
+    background: var(--bg-panel);
+    z-index: 20;
+    padding: 10px 0;
+    margin-bottom: 10px;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+}
+
+/* 1. The Glass Search Bar */
+.move-search-box {
+    display: flex;
+    align-items: center;
+    background: rgba(0,0,0,0.04);
+    border: var(--glass-border);
+    border-radius: 12px;
+    padding: 0 15px;
+    height: 45px;
+    margin-bottom: 12px;
+    transition: all 0.2s ease;
+}
+
+.move-search-box:focus-within {
+    background: rgba(0,0,0,0.06);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    border-color: rgba(var(--primary), 0.3);
+}
+
+.move-search-box input {
+    border: none;
+    background: transparent;
+    flex: 1;
+    margin-left: 10px;
+    font-family: 'Rajdhani';
+    font-size: 1rem;
+    font-weight: bold;
+    color: var(--text-main);
+    outline: none;
+}
+
+/* 2. The Horizontal Chip Scroller */
+.move-chip-scroll {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 5px;
+    scrollbar-width: none; /* Hide scrollbar Firefox */
+    -webkit-overflow-scrolling: touch;
+}
+.move-chip-scroll::-webkit-scrollbar { display: none; /* Hide Chrome/Safari */ }
+
+.move-chip {
+    flex: 0 0 auto;
+    padding: 6px 16px;
+    border-radius: 20px;
+    border: 1px solid rgba(0,0,0,0.1);
+    background: rgba(255,255,255,0.5);
+    color: var(--text-muted);
+    font-family: 'Orbitron';
+    font-size: 0.7rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.move-chip.active {
+    background: var(--primary);
+    color: #fff;
+    border-color: var(--primary);
+    box-shadow: 0 4px 10px rgba(var(--primary), 0.3);
+    transform: translateY(-1px);
+}
+/* =========================================
+   UI UPGRADE: TRANSPARENT SEARCH & PRO BADGES
+   ========================================= */
+
+/* 1. Remove white backgrounds for a clean blend */
+.move-controls-v2 {
+    position: sticky;
+    top: 0;
+    background: var(--bg-panel); /* Keep panel bg for readability when scrolling */
+    backdrop-filter: blur(10px);
+    z-index: 20;
+    padding: 10px 0;
+    margin-bottom: 10px;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+    /* Make it semi-transparent so it blends */
+    background: rgba(255,255,255,0.8); 
+}
+/* Dark mode support for the sticky header */
+body:not(.theme-default) .move-controls-v2 {
+    background: rgba(0,0,0,0.6);
+}
+
+.move-search-box {
+    display: flex;
+    align-items: center;
+    /* Make the box itself much more subtle/transparent */
+    background: rgba(0,0,0,0.03); 
+    border: 1px solid rgba(0,0,0,0.1);
+    border-radius: 12px;
+    padding: 0 15px;
+    height: 40px; /* Slightly more compact */
+    margin-bottom: 10px;
+}
+
+.move-chip-scroll {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 5px;
+    padding-left: 2px; /* alignment fix */
+}
+
+/* 2. New "Pro" Badges */
+.move-badges {
+    display: flex;
+    gap: 5px;
+    margin-top: 4px;
+}
+
+.move-type-pill {
+    font-size: 0.6rem;
+    padding: 2px 8px;
+    border-radius: 4px;
+    color: white;
+    font-weight: bold;
+    text-transform: uppercase;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    display: inline-block;
+}
+
+.move-cat-pill {
+    font-size: 0.6rem;
+    padding: 2px 8px;
+    border-radius: 4px;
+    color: white;
+    font-weight: bold;
+    text-transform: uppercase;
+    display: inline-block;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+/* Official Category Colors */
+.cat-physical { background: #FF4400; } /* Red/Orange */
+.cat-special  { background: #2266CC; } /* Blue */
+.cat-status   { background: #888888; } /* Grey */
+.cat-unknown  { background: #333333; }
+    </style>
+</head>
+<body>
+
+    <div id="loader" class="loader-overlay">
+        <div class="holo-ring"></div>
+        <div class="loader-text" style="color:var(--primary); margin-top:20px; font-family:'Orbitron'; font-size:0.8rem;" id="loader-text">INITIALIZING SYSTEM</div>
+        <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+    </div>
+
+    <!-- SPRITE VIEWER MODAL -->
+    <div id="sprite-viewer-modal" class="modal">
+        <div class="viewer-content">
+            <div class="viewer-header">
+                <div class="viewer-title" id="viewer-title">SPRITE VIEW</div>
+                <button class="viewer-close" onclick="SpriteViewer.close()"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="viewer-canvas" id="viewer-canvas">
+                <img id="viewer-img" class="viewer-image" src="" alt="Pokemon Sprite">
+            </div>
+            <div class="viewer-controls">
+                <button class="viewer-btn" onclick="SpriteViewer.download()"><i class="fas fa-download"></i> DOWNLOAD</button>
+                <button class="viewer-btn" onclick="SpriteViewer.resetZoom()"><i class="fas fa-compress"></i> RESET</button>
+            </div>
+        </div>
+    </div>
+
+    <main id="app-container">
+        
+        <section id="view-dex" class="view active">
+            <header class="glass-header">
+                <div class="logo-container"><div class="app-brand"><i class="fas fa-dna"></i> POKÉ <span>TOOLS</span></div></div>
+                <div class="search-row">
+                    <div class="search-bar-wrapper">
+                        <i class="fas fa-search" style="color:var(--text-muted)"></i>
+                        <input type="text" id="dex-search" placeholder="Search Database...">
+                    </div>
+                    <div class="filter-btn-container">
+                        <button id="open-filter-btn" class="icon-btn"><i class="fas fa-sliders-h"></i></button>
+                    </div>
+                </div>
+                <div class="chip-scroller-container">
+                    <div class="chip-scroller" id="chip-scroller">
+                        <div class="chip-glider" id="chip-glider"></div>
+                        <button class="filter-chip active" data-cat="all">ALL</button>
+                        <button class="filter-chip" data-cat="legendary">LEGENDARY</button>
+                        <button class="filter-chip" data-cat="mythical">MYTHICAL</button>
+                        <button class="filter-chip" data-cat="gen1">GEN I</button>
+                        <button class="filter-chip" data-cat="gen2">GEN II</button>
+                        <button class="filter-chip" data-cat="gen3">GEN III</button>
+                        <button class="filter-chip" data-cat="gen4">GEN IV</button>
+                        <button class="filter-chip" data-cat="gen5">GEN V</button>
+                        <button class="filter-chip" data-cat="gen6">GEN VI</button>
+                        <button class="filter-chip" data-cat="gen7">GEN VII</button>
+                        <button class="filter-chip" data-cat="gen8">GEN VIII</button>
+                        <button class="filter-chip" data-cat="gen9">GEN IX</button>
+                    </div>
+                </div>
+            </header>
+            <div class="view-content">
+                <div class="scroll-force-wrapper">
+                    <div id="dex-grid" class="dex-grid"></div>
+                    <div id="sentinel" style="height: 50px; width: 100%;"></div>
+                </div>
+            </div>
+        </section>
+
+        <section id="view-team" class="view">
+            <header class="glass-header">
+                <div class="logo-container"><div class="app-brand">TACTICAL <span>UNIT</span></div></div>
+            </header>
+            <div class="view-content">
+                <div class="scroll-force-wrapper">
+                    <div class="team-container">
+                        <div class="team-slots" id="team-slots"></div>
+                        <div class="glass-panel" style="padding:20px; border-radius:20px; margin-bottom:20px; overflow:hidden;">
+                            <h3 style="margin-top:0; color:var(--primary); font-size:0.9rem;"><i class="fas fa-shield-alt"></i> THREAT ANALYSIS</h3>
+                            <div id="team-threats" style="margin-top:10px;"><p style="color:var(--text-muted); font-size:0.8rem;">Add units to analyze.</p></div>
+                            <h3 style="margin-top:20px; color:var(--primary); font-size:0.9rem;"><i class="fas fa-lightbulb"></i> TACTICAL ADVICE</h3>
+                            <div id="team-suggestions" style="display:flex; flex-wrap:wrap; gap:8px; margin-top:10px;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="view-types" class="view">
+            <header class="glass-header">
+                <div class="logo-container"><div class="app-brand">TYPE <span>MATRIX</span></div></div>
+            </header>
+            <div class="view-content">
+                <div class="scroll-force-wrapper">
+                    <div class="type-analysis-container" id="type-analysis-list"></div>
+                </div>
+            </div>
+        </section>
+
+        <section id="view-settings" class="view">
+            <header class="glass-header">
+                <div class="logo-container"><div class="app-brand">SYSTEM <span>CONFIG</span></div></div>
+            </header>
+            <div class="view-content">
+                <div class="scroll-force-wrapper">
+                    <div style="padding:15px;">
+                    <h3 style="font-family:'Orbitron'; color:var(--text-muted); font-size:0.8rem;">OFFLINE MODE</h3>
+                    <button class="setting-btn" id="download-all-btn" style="color:#00ff7f; border-color:rgba(0,255,127,0.3);">
+                        <i class="fas fa-download"></i> DOWNLOAD ALL ASSETS
+                    </button>
+                    <div id="download-progress" style="display:none; margin-top:15px; font-size:0.8rem; color:var(--text-main); background:rgba(0,0,0,0.2); padding:10px; border-radius:8px;">
+                        <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+                            <span>Syncing Forms & Sprites...</span>
+                            <span id="time-remaining">Calculating...</span>
+                        </div>
+                        <div style="height:6px; background:rgba(255,255,255,0.1); border-radius:3px; overflow:hidden;">
+                            <div id="dl-bar" style="height:100%; width:0%; background:#00ff7f; transition:width 0.2s linear;"></div>
+                        </div>
+                        <div style="text-align:right; margin-top:5px; font-size:0.7rem; color:var(--text-muted);">
+                            <span id="dl-count">0</span> / 1025
+                        </div>
+                    </div>
+
+                    <h3 style="font-family:'Orbitron'; color:var(--text-muted); font-size:0.8rem; margin-top:20px;">VISUAL INTERFACE</h3>
+                    <select id="theme-select" class="setting-btn" style="text-align:left; margin-bottom:15px;">
+                        <option value="theme-default">Default (Red/White)</option>
+                        <option value="theme-dark">Night Mode (OLED)</option>
+                        <option value="theme-glass">Cyber Glass (Neon)</option>
+                        <option value="theme-blue-dark">Deep Ocean</option>
+                        <option value="theme-forest">Foreststalker (Green)</option>
+                        <option value="theme-vapor">Vaporwave (Retro)</option>
+                        <option value="theme-solar">Solar Flare (Orange)</option>
+                        <option value="theme-royal">Royal Velvet (Gold)</option>
+                        <option value="theme-ice">Glacial Ice (Cyan)</option>
+                        <option value="theme-toxic">Toxic Waste (Acid)</option>
+                        <option value="theme-midnight-dragon">Midnight Dragon (Purple)</option>
+                        <option value="theme-neon-surge">Neon Surge (Hot Pink)</option>
+                        <option value="theme-retro-arcade">Retro Arcade (Y2K)</option>
+                        <option value="theme-mystic-aurora">Mystic Aurora (Cyan)</option>
+                        <option value="theme-chaos-theory">Chaos Theory (Magenta)</option>
+                        <option value="theme-pikachu">Pikachu</option>
+                        <option value="theme-charizard">Charizard</option>
+                        <option value="theme-pride">Pride</option>
+                    </select>
+
+                    <div class="switch-container">
+                        <div class="switch-label-text"><i class="fas fa-mobile-alt"></i> HAPTIC FEEDBACK</div>
+                        <label class="switch">
+                            <input type="checkbox" id="haptic-toggle">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    
+                    <button class="setting-btn" id="clear-data-btn" style="color:#ff4d4d; border-color:rgba(255,77,77,0.3); margin-top:10px;">
+                        <i class="fas fa-trash-alt"></i> FACTORY RESET
+                    </button>
+
+                    <div class="credit-card">
+                        <div class="credit-header">DEVELOPER</div>
+                        <div class="credit-name">BHOIDY</div>
+                        <a href="https://www.youtube.com/@bhoidy" target="_blank" class="credit-link"><i class="fab fa-youtube"></i> @bhoidy</a>
+                        <div style="margin-top:10px;"><a href="https://github.com/CoderBhoid" target="_blank" style="color:var(--text-muted); text-decoration:none; font-size:0.8rem; font-family:'Rajdhani';"><i class="fab fa-github"></i> github.com/CoderBhoid</a></div>
+                        <div class="credit-sub">Proudly Open Sourced | v1.0</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <button id="flux-btn" class="flux-fab"><i class="fas fa-random"></i></button>
+
+    <nav class="bottom-nav" id="bottom-nav">
+        <button class="nav-item active" data-target="view-dex"><i class="fas fa-dna"></i><span>DEX</span></button>
+        <button class="nav-item" data-target="view-team"><i class="fas fa-chess-knight"></i><span>TEAM</span></button>
+        <button class="nav-item" data-target="view-types"><i class="fas fa-th"></i><span>TYPE</span></button>
+        <button class="nav-item" data-target="view-settings"><i class="fas fa-sliders-h"></i><span>SYS</span></button>
+    </nav>
+
+    <div id="filter-sheet" class="modal sheet-modal">
+        <div class="sheet-content">
+            <div style="display:flex; justify-content:space-between; margin-bottom:20px;">
+                <h3 style="margin:0; font-family:'Orbitron';">FILTERS</h3>
+                <button class="close-btn" style="background:none; border:none; color:var(--text-muted); font-size:1.2rem;"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="filter-row">
+                <label>Primary Type</label>
+                <div style="position:relative;">
+                    <select id="filter-type-1" class="glass-select"><option value="">Any</option></select>
+                    <i class="fas fa-chevron-down" style="position:absolute; right:15px; top:50%; transform:translateY(-50%); pointer-events:none; color:var(--text-muted);"></i>
+                </div>
+            </div>
+            <div class="filter-row">
+                <label>Secondary Type</label>
+                <div style="position:relative;">
+                    <select id="filter-type-2" class="glass-select"><option value="">Any</option></select>
+                    <i class="fas fa-chevron-down" style="position:absolute; right:15px; top:50%; transform:translateY(-50%); pointer-events:none; color:var(--text-muted);"></i>
+                </div>
+            </div>
+            <button id="apply-filters-btn" class="action-btn">APPLY CONFIG</button>
+        </div>
+    </div>
+
+    <div id="modal" class="modal">
+        <button class="close-modal-btn" style="position:fixed; top:20px; right:20px; background:rgba(0,0,0,0.5); border:none; color:white; width:40px; height:40px; border-radius:50%; z-index:210;"><i class="fas fa-times"></i></button>
+        <div class="modal-content glass-panel" id="modal-content"></div>
+    </div>
+    
+    <div id="ability-modal" class="modal mini-modal">
+        <div class="mini-modal-box">
+            <h3 id="ability-name" style="color:var(--primary); font-family:'Orbitron'; margin-bottom:10px;">ABILITY</h3>
+            <p id="ability-desc" style="color:var(--text-main); font-size:0.9rem; line-height:1.5;">Loading...</p>
+            <button class="close-btn" style="margin-top:15px; padding:10px 20px; border:none; background:var(--bg-app); border:1px solid rgba(0,0,0,0.1); border-radius:20px;">CLOSE</button>
+        </div>
+    </div>
+
+    <div id="mini-search-modal" class="modal">
+        <div class="mini-search-container">
+            <div class="mini-search-box">
+                <i class="fas fa-search" style="color:var(--text-muted)"></i>
+                <input type="text" id="team-search-input" placeholder="Select Pokemon...">
+                <i class="fas fa-times close-btn" style="padding:10px; cursor:pointer;"></i>
+            </div>
+            <div id="mini-search-results" style="overflow-y:auto; flex:1;"></div>
+        </div>
+    </div>
+
+<script type="module">
+    import { registerPlugin } from '@capacitor/core';
+    import { App } from '@capacitor/app';
+
+    const GboardHaptics = registerPlugin('GboardHaptics');
+
+    // CONFIG & STATE
+    const CONFIG = { 
+        API_LIMIT: 1025, 
+        CACHE_KEY: 'pokedex_v6_data', 
+        TEAM_KEY: 'pokedex_v2_team', 
+        THEME_KEY: 'pokedex_v2_theme', 
+        HAPTIC_KEY: 'pokedex_v2_haptic', 
+        SPRITE_PREF_KEY: 'pokedex_sprite_pref', 
+        FORMS_CACHE_KEY: 'pokemon_forms' 
+    };
+    
+    // Static lists for filters (IDs) to enable instant filtering without deep fetch
+    const LEGENDARY_IDS = [144,145,146,150,243,244,245,249,250,377,378,379,380,381,382,383,384,480,481,482,483,484,485,486,487,488,638,639,640,641,642,643,644,645,646,716,717,718,785,786,787,788,789,790,791,792,800,888,889,890,891,892,894,895,896,897,898,905,1001,1002,1003,1004,1007,1008,1014,1015,1016,1017,1024];
+    const MYTHICAL_IDS = [151,251,385,386,489,490,491,492,493,494,647,648,649,719,720,721,801,802,807,808,809,893,1025];
+
+    const typeChart = { normal: { rock: 0.5, ghost: 0, steel: 0.5 }, fire: { fire: 0.5, water: 0.5, grass: 2, ice: 2, bug: 2, rock: 0.5, dragon: 0.5, steel: 2 }, water: { fire: 2, water: 0.5, grass: 0.5, ground: 2, rock: 2, dragon: 0.5 }, electric: { water: 2, electric: 0.5, grass: 0.5, ground: 0, flying: 2, dragon: 0.5 }, grass: { fire: 0.5, water: 2, grass: 0.5, poison: 0.5, ground: 2, flying: 0.5, bug: 0.5, rock: 2, dragon: 0.5, steel: 0.5 }, ice: { fire: 0.5, water: 0.5, grass: 2, ice: 0.5, ground: 2, flying: 2, dragon: 2, steel: 0.5 }, fighting: { normal: 2, ice: 2, poison: 0.5, flying: 0.5, psychic: 0.5, bug: 0.5, rock: 2, ghost: 0, dark: 2, steel: 2, fairy: 0.5 }, poison: { grass: 2, poison: 0.5, ground: 0.5, rock: 0.5, ghost: 0.5, steel: 0, fairy: 2 }, ground: { fire: 2, electric: 2, grass: 0.5, poison: 2, flying: 0, bug: 0.5, rock: 2, steel: 2 }, flying: { electric: 0.5, grass: 2, fighting: 2, bug: 2, rock: 0.5, steel: 0.5 }, psychic: { fighting: 2, poison: 2, psychic: 0.5, dark: 0, steel: 0.5 }, bug: { fire: 0.5, grass: 2, fighting: 0.5, poison: 0.5, flying: 0.5, psychic: 2, ghost: 0.5, dark: 2, steel: 0.5, fairy: 0.5 }, rock: { fire: 2, ice: 2, fighting: 0.5, ground: 0.5, flying: 2, bug: 2, steel: 0.5 }, ghost: { normal: 0, psychic: 2, ghost: 2, dark: 0.5 }, dragon: { dragon: 2, steel: 0.5, fairy: 0 }, dark: { fighting: 0.5, psychic: 2, ghost: 2, dark: 0.5, fairy: 0.5 }, steel: { fire: 0.5, water: 0.5, electric: 0.5, ice: 2, rock: 2, steel: 0.5, fairy: 2 }, fairy: { fire: 0.5, fighting: 2, poison: 0.5, dragon: 2, dark: 2, steel: 0.5 } };
+    const allTypes = Object.keys(typeChart);
+
+    let allPokemon = [];
+    let team = Array(6).fill(null);
+    let activeSlotIndex = null;
+    let currentOffset = 0; 
+    const BATCH_SIZE = 50;
+    let activeFilters = { category: 'all', search: '', type1: '', type2: '' };
+    let filteredList = [];
+    let hapticsEnabled = true;
+
+    const els = {
+        loader: document.getElementById('loader'), loaderText: document.getElementById('loader-text'),
+        progressFill: document.getElementById('progress-fill'), dexGrid: document.getElementById('dex-grid'),
+        sentinel: document.getElementById('sentinel'), searchInput: document.getElementById('dex-search'),
+        filterChips: document.querySelectorAll('.filter-chip'), chipGlider: document.getElementById('chip-glider'),
+        modal: document.getElementById('modal'), modalContent: document.getElementById('modal-content'),
+        teamSlots: document.getElementById('team-slots'), teamThreats: document.getElementById('team-threats'),
+        teamSuggestions: document.getElementById('team-suggestions'), miniSearchModal: document.getElementById('mini-search-modal'),
+        teamSearchInput: document.getElementById('team-search-input'), miniSearchResults: document.getElementById('mini-search-results'),
+        typeAnalysisList: document.getElementById('type-analysis-list'), filterSheet: document.getElementById('filter-sheet'),
+        filterType1: document.getElementById('filter-type-1'), filterType2: document.getElementById('filter-type-2'),
+        abilityModal: document.getElementById('ability-modal'), abilityName: document.getElementById('ability-name'),
+        abilityDesc: document.getElementById('ability-desc'), dlBtn: document.getElementById('download-all-btn'),
+        dlProgress: document.getElementById('download-progress'), dlCount: document.getElementById('dl-count'), dlBar: document.getElementById('dl-bar'),
+        timeRem: document.getElementById('time-remaining'), hapticToggle: document.getElementById('haptic-toggle')
+    };
+
+    // --- SPRITE VIEWER LOGIC ---
+    window.SpriteViewer = {
+        modal: document.getElementById('sprite-viewer-modal'),
+        img: document.getElementById('viewer-img'),
+        title: document.getElementById('viewer-title'),
+        canvas: document.getElementById('viewer-canvas'),
+        currentScale: 1,
+        currentTranslate: { x: 0, y: 0 },
+        startDist: 0,
+        startScale: 1,
+        isDragging: false,
+        startPos: { x: 0, y: 0 },
+        
+        open(src, name) {
+            triggerHaptic();
+            this.img.src = src;
+            this.title.innerText = name.toUpperCase();
+            this.modal.classList.add('open');
+            this.resetZoom();
+        },
+        close() {
+            this.modal.classList.remove('open');
+        },
+        download() {
+            const link = document.createElement('a');
+            link.href = this.img.src;
+            link.download = `pokemon_${this.title.innerText.toLowerCase()}.png`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            triggerHaptic();
+        },
+        resetZoom() {
+            this.currentScale = 1;
+            this.currentTranslate = { x: 0, y: 0 };
+            this.updateTransform();
+        },
+        updateTransform() {
+            this.img.style.transform = `translate(${this.currentTranslate.x}px, ${this.currentTranslate.y}px) scale(${this.currentScale})`;
+        },
+        
+        initEvents() {
+            this.canvas.addEventListener('touchstart', (e) => {
+                if (e.touches.length === 2) {
+                    this.startDist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
+                    this.startScale = this.currentScale;
+                } else if (e.touches.length === 1) {
+                    this.isDragging = true;
+                    this.startPos = { x: e.touches[0].pageX - this.currentTranslate.x, y: e.touches[0].pageY - this.currentTranslate.y };
+                }
+            }, {passive: false});
+
+            this.canvas.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+                if (e.touches.length === 2) {
+                    const dist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
+                    this.currentScale = Math.max(0.5, Math.min(5, this.startScale * (dist / this.startDist)));
+                    this.updateTransform();
+                } else if (e.touches.length === 1 && this.isDragging) {
+                    this.currentTranslate.x = e.touches[0].pageX - this.startPos.x;
+                    this.currentTranslate.y = e.touches[0].pageY - this.startPos.y;
+                    this.updateTransform();
+                }
+            }, {passive: false});
+
+            this.canvas.addEventListener('touchend', () => { this.isDragging = false; });
+        }
+    };
+    window.SpriteViewer.initEvents();
+
+    // --- INDEXED DB HELPER ---
+// --- INDEXED DB HELPER (UPGRADED v2) ---
+    const dbHelper = {
+        dbName: 'PoketoolsDB',
+        version: 2, // <--- VERSION BUMPED TO 2
+        open: () => {
+            return new Promise((resolve, reject) => {
+                const req = indexedDB.open(dbHelper.dbName, dbHelper.version);
+                req.onupgradeneeded = (e) => { 
+                    const db = e.target.result;
+                    // Original Store
+                    if(!db.objectStoreNames.contains('details')) db.createObjectStore('details', { keyPath: 'id' });
+                    // NEW: Stores for Offline Moves & Abilities
+                    if(!db.objectStoreNames.contains('moves')) db.createObjectStore('moves', { keyPath: 'name' });
+                    if(!db.objectStoreNames.contains('abilities')) db.createObjectStore('abilities', { keyPath: 'name' });
+                };
+                req.onsuccess = (e) => resolve(e.target.result);
+                req.onerror = (e) => { console.warn("DB Open Error", e); reject(e); };
+            });
+        },
+        save: async (store, data) => {
+            try {
+                const db = await dbHelper.open();
+                return new Promise((resolve, reject) => {
+                    const tx = db.transaction(store, 'readwrite');
+                    tx.objectStore(store).put(data);
+                    tx.oncomplete = () => resolve();
+                    tx.onerror = () => reject();
+                });
+            } catch(e) { return; } 
+        },
+        get: async (store, id) => {
+            try {
+                const db = await dbHelper.open();
+                return new Promise((resolve) => {
+                    const tx = db.transaction(store, 'readonly');
+                    const req = tx.objectStore(store).get(id);
+                    req.onsuccess = () => resolve(req.result);
+                    req.onerror = () => resolve(null);
+                });
+            } catch(e) { return null; }
+        }
+    };
+    // --- SPRITE CONTROLLER ---
+    window.SpriteController = {
+        currentType: localStorage.getItem(CONFIG.SPRITE_PREF_KEY) || 'official',
+        pokemonData: null,
+        async toggle(type, imgId) {
+            triggerHaptic();
+            const imgEl = document.getElementById(imgId);
+            if (!this.pokemonData || !imgEl) return;
+            let newSrc = '';
+            if (type === 'official') newSrc = this.pokemonData.sprites.other['official-artwork'].front_default;
+            else if (type === 'showdown') newSrc = this.pokemonData.sprites.other.showdown.front_default;
+            else newSrc = this.pokemonData.sprites.front_default;
+
+            if (!newSrc && type === 'showdown') newSrc = this.pokemonData.sprites.front_default; 
+            if (!newSrc) { showToast("Sprite unavailable."); return; }
+
+            if (!navigator.onLine) {
+                const hasCache = await window.caches.match(newSrc);
+                if (!hasCache && !localStorage.getItem(CONFIG.FORMS_CACHE_KEY)) {
+                    showToast("Connect to the internet to download this sprite set first.");
+                    return;
+                }
+            }
+            this.currentType = type;
+            localStorage.setItem(CONFIG.SPRITE_PREF_KEY, type);
+            document.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(`btn-${type}`).classList.add('active');
+            imgEl.classList.add('swapping');
+            setTimeout(() => {
+                imgEl.src = newSrc;
+                imgEl.onload = () => imgEl.classList.remove('swapping');
+            }, 300);
+        }
+    };
+
+    function showToast(msg) {
+        let toast = document.getElementById('offline-toast');
+        if(!toast) {
+            toast = document.createElement('div');
+            toast.id = 'offline-toast';
+            toast.className = 'offline-toast';
+            document.body.appendChild(toast);
+        }
+        toast.innerHTML = `<i class="fas fa-exclamation-triangle"></i> ${msg}`;
+        toast.classList.add('visible');
+        setTimeout(() => toast.classList.remove('visible'), 3000);
+    }
+
+    function calculateRelations(types) {
+        const relations = { 4: [], 2: [], 0.5: [], 0.25: [], 0: [] };
+        allTypes.forEach(attacker => {
+            let multiplier = 1;
+            types.forEach(defType => {
+                if (typeChart[attacker] && typeChart[attacker][defType.type.name] !== undefined) multiplier *= typeChart[attacker][defType.type.name];
+            });
+            if (multiplier !== 1 && relations[multiplier]) relations[multiplier].push(attacker);
+        });
+        return relations;
+    }
+
+    function formatGameName(name) { return name.replace(/-/g, ' ').toUpperCase(); }
+
+   // --- NEW: CRY AUDIO PLAYER ---
+    window.playCry = (id) => {
+        const audio = new Audio(`https://raw.githubusercontent.com/PokeAPI/cries/main/cries/pokemon/latest/${id}.ogg`);
+        audio.volume = 0.5;
+        audio.play().catch(e => console.log("Audio play error", e));
+        
+        // Visual Feedback
+        const btn = document.getElementById('cry-btn-anim');
+        if(btn) {
+            btn.style.transform = "scale(0.9)";
+            setTimeout(() => btn.style.transform = "scale(1)", 150);
+        }
+    };
+
+    // --- NEW: OFFLINE READERS ---
+    // Updated Move Detail Toggle
+    window.toggleMoveDetail = async (element, url) => {
+        const detailRow = element.querySelector('.move-detail-row');
+        if(element.classList.contains('active')) { element.classList.remove('active'); return; }
+        
+        element.classList.add('active');
+        if(detailRow.dataset.loaded === 'false') {
+            detailRow.innerHTML = '<div style="padding:10px; text-align:center;"><i class="fas fa-circle-notch fa-spin"></i> Loading...</div>';
+            
+            try {
+                // 1. Try Network
+                let data;
+                if(navigator.onLine) {
+                    const res = await fetch(url);
+                    data = await res.json();
+                } else {
+                    // 2. Try Offline DB
+                    // Extract name from URL since we save by name
+                    const moveName = url.split('/').slice(-2, -1)[0];
+                    data = await dbHelper.get('moves', moveName);
+                    if(!data) throw new Error("Offline and not cached");
+                }
+
+                const desc = data.flavor_text_entries?.find(e => e.language.name === 'en')?.flavor_text.replace(/[\n\f]/g, ' ') || 'No description.';
+                const historyHtml = decodeURIComponent(element.dataset.history || '');
+                
+                detailRow.innerHTML = `<div style="background:rgba(0,0,0,0.02); padding:10px; border-radius:8px; margin-top:5px;"><div style="display:flex; gap:10px; margin-bottom:10px; align-items:center;"><span class="mini-type-pill type-${data.type.name}">${data.type.name}</span><span style="font-weight:bold; color:var(--text-main); font-size:0.7rem;">${data.damage_class.name.toUpperCase()}</span></div><div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:5px; margin-bottom:10px; text-align:center; font-size:0.8rem; background:var(--bg-panel); padding:8px; border-radius:6px; border:var(--glass-border);"><div><div style="color:var(--primary); font-weight:bold;">${data.power || '-'}</div><div style="font-size:0.6rem; color:var(--text-muted);">PWR</div></div><div><div style="color:var(--text-main); font-weight:bold;">${data.accuracy ? data.accuracy+'%' : '-'}</div><div style="font-size:0.6rem; color:var(--text-muted);">ACC</div></div><div><div style="color:var(--text-main); font-weight:bold;">${data.pp}</div><div style="font-size:0.6rem; color:var(--text-muted);">PP</div></div></div><div style="font-style:italic; margin-bottom:15px; font-size:0.85rem; line-height:1.4;">"${desc}"</div><div style="border-top:1px solid rgba(0,0,0,0.1); padding-top:10px;"><div style="font-family:'Orbitron'; font-size:0.7rem; color:var(--text-muted); margin-bottom:8px;">LEARN HISTORY</div><div style="max-height:200px; overflow-y:auto; padding-right:5px; font-size:0.8rem;">${historyHtml}</div></div></div>`;
+                detailRow.dataset.loaded = 'true';
+            } catch(e) { 
+                detailRow.innerHTML = '<div style="padding:10px; text-align:center; opacity:0.6; font-size:0.8rem;">Description unavailable offline.<br>(Go to Settings > Download All to cache moves)</div>'; 
+            }
+        }
+    };
+
+    // Updated Ability Info
+    async function showAbilityInfo(url) {
+        triggerHaptic();
+        els.abilityModal.classList.add('open');
+        els.abilityName.innerText = "LOADING..."; 
+        els.abilityDesc.innerText = "...";
+        
+        try {
+            let data;
+            if(navigator.onLine) {
+                const res = await fetch(url); 
+                data = await res.json();
+            } else {
+                const abName = url.split('/').slice(-2, -1)[0];
+                data = await dbHelper.get('abilities', abName);
+                if(!data) throw new Error("Offline");
+            }
+            
+            const entry = data.effect_entries.find(e => e.language.name === 'en') || data.flavor_text_entries.find(e => e.language.name === 'en');
+            els.abilityName.innerText = data.name.replace(/-/g, ' ').toUpperCase(); 
+            els.abilityDesc.innerText = entry ? (entry.short_effect || entry.flavor_text) : "No description.";
+        } catch (e) { 
+            els.abilityName.innerText = "OFFLINE"; 
+            els.abilityDesc.innerText = "Connect to internet or Download Assets to view this."; 
+        }
+    }
+    // --- ENCOUNTER FIX ---
+    window.updateEncounterList = (select, dataStr) => {
+        try {
+            const data = JSON.parse(decodeURIComponent(dataStr));
+            const listEl = document.getElementById('encounter-list-content');
+            if (!select.value) { listEl.innerHTML = ''; return; }
+            
+            const relevant = data.filter(enc => enc.version_details.some(vd => vd.version.name === select.value));
+            
+            if (relevant.length === 0) {
+                listEl.innerHTML = '<div style="padding:10px; text-align:center; opacity:0.6;">Not found in this game version.</div>';
+            } else {
+                listEl.innerHTML = relevant.map(enc => `<div class="encounter-item"><span class="encounter-loc">${enc.location_area.name.replace(/-/g, ' ')}</span><span class="encounter-method">Wild</span></div>`).join('');
+            }
+        } catch(e) { console.error("Encounter Parse Error", e); }
+    };
+
+    async function triggerHaptic() { if(hapticsEnabled) { try { await GboardHaptics.tap(); } catch (e) { if(navigator.vibrate) navigator.vibrate(1); } } }
+
+    async function init() {
+        if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => {});
+        document.body.className = localStorage.getItem(CONFIG.THEME_KEY) || 'theme-default';
+        document.getElementById('theme-select').value = document.body.className;
+        hapticsEnabled = (localStorage.getItem(CONFIG.HAPTIC_KEY) === 'true');
+        els.hapticToggle.checked = hapticsEnabled;
+        const options = allTypes.map(t => `<option value="${t}">${t.toUpperCase()}</option>`).join('');
+        els.filterType1.innerHTML += options; els.filterType2.innerHTML += options;
+
+        const cachedData = localStorage.getItem(CONFIG.CACHE_KEY);
+        if (cachedData) { 
+            allPokemon = JSON.parse(cachedData); 
+            els.loader.style.display = 'none'; 
+            applyFiltersAndRender(true); 
+        } else { 
+            await downloadBasicData(); 
+        }
+
+        const savedTeam = localStorage.getItem(CONFIG.TEAM_KEY);
+        if(savedTeam) team = JSON.parse(savedTeam);
+        renderTeam();
+        
+        initChipGlider(); setupInfiniteScroll(); setupEventListeners(); renderTypeCards(); setupNativeListeners();
+    }
+
+    function setupNativeListeners() {
+        App.addListener('backButton', ({ canGoBack }) => {
+            const openModals = document.querySelectorAll('.modal.open');
+            if (openModals.length > 0) {
+                if(window.SpriteViewer.modal.classList.contains('open')) window.SpriteViewer.close();
+                else closeModal(openModals[openModals.length - 1]);
+            }
+            else if (canGoBack) window.history.back();
+            else App.exitApp();
+        });
+    }
+
+    async function downloadBasicData() {
+        els.loaderText.innerText = "SYNCING BASIC DATA...";
+        try {
+            const res = await fetch(`https://pokeapi.co/api/v2/pokemon?limit=${CONFIG.API_LIMIT}`);
+            const data = await res.json();
+            const chunks = []; const batchSize = 50; 
+            for (let i = 0; i < data.results.length; i += batchSize) {
+                const slice = data.results.slice(i, i + batchSize);
+                const chunkDetails = await Promise.all(slice.map(async (p) => {
+                    const id = parseInt(p.url.split('/').slice(-2, -1)[0]);
+                    return { 
+                        id: id, 
+                        name: p.name, 
+                        types: [], 
+                        isLegendary: LEGENDARY_IDS.includes(id), 
+                        isMythical: MYTHICAL_IDS.includes(id), 
+                        generation: 1 
+                    };
+                }));
+                chunks.push(...chunkDetails);
+                els.progressFill.style.width = `${Math.min(100, (chunks.length / data.results.length) * 100)}%`;
+            }
+            allPokemon = chunks; 
+            localStorage.setItem(CONFIG.CACHE_KEY, JSON.stringify(allPokemon)); 
+            els.loader.style.display = 'none'; 
+            applyFiltersAndRender(true);
+            updateTypesInBackground();
+        } catch (e) { els.loaderText.innerText = "CONNECTION FAILED"; }
+    }
+    
+    async function updateTypesInBackground() {
+        for(let i=0; i<allPokemon.length; i+=20) {
+            const batch = allPokemon.slice(i, i+20);
+            await Promise.all(batch.map(async (p) => {
+                try {
+                    const r = await fetch(`https://pokeapi.co/api/v2/pokemon/${p.id}`);
+                    const d = await r.json();
+                    p.types = d.types.map(t=>t.type.name);
+                } catch(e){}
+            }));
+            localStorage.setItem(CONFIG.CACHE_KEY, JSON.stringify(allPokemon));
+        }
+    }
+
+ // --- UPDATED DOWNLOADER (INCLUDES MOVES & ABILITIES) ---
+    els.dlBtn.onclick = async () => {
+        triggerHaptic(); 
+        if(!confirm("Download ALL assets?\n\n1. Pokemon Data & Sprites\n2. Move Descriptions\n3. Ability Descriptions\n\nThis is a heavy process.")) return;
+        
+        els.dlBtn.disabled = true; 
+        els.dlProgress.style.display = 'block';
+        
+        // PHASE 1: POKEMON & SPRITES
+        const ids = allPokemon.length > 0 ? allPokemon.map(p => p.id) : Array.from({length: CONFIG.API_LIMIT}, (_, i) => i + 1);
+        let completed = 0; 
+        let formsMap = JSON.parse(localStorage.getItem(CONFIG.FORMS_CACHE_KEY) || '{}');
+        const startTime = Date.now();
+        const batchSize = 3; 
+
+        for (let i = 0; i < ids.length; i += batchSize) {
+            const batch = ids.slice(i, i + batchSize);
+            await Promise.all(batch.map(async (id) => { 
+                try {
+                    // Cache the Cry Audio
+                    fetch(`https://raw.githubusercontent.com/PokeAPI/cries/main/cries/pokemon/latest/${id}.ogg`, { mode: 'no-cors' });
+
+                    const [pRes, sRes, encRes] = await Promise.all([ 
+                        fetch(`https://pokeapi.co/api/v2/pokemon/${id}`), 
+                        fetch(`https://pokeapi.co/api/v2/pokemon-species/${id}`),
+                        fetch(`https://pokeapi.co/api/v2/pokemon/${id}/encounters`)
+                    ]);
+                    
+                    const pData = await pRes.clone().json(); 
+                    const sData = await sRes.clone().json();
+                    const encData = await encRes.clone().json();
+                    let evoData = null;
+                    if(sData.evolution_chain?.url) { const evoRes = await fetch(sData.evolution_chain.url); evoData = await evoRes.clone().json(); }
+
+                    const spritesToCache = [pData.sprites.front_default, pData.sprites.front_shiny, pData.sprites.other['official-artwork'].front_default, pData.sprites.other['official-artwork'].front_shiny].filter(u => u);
+                    spritesToCache.forEach(url => fetch(url, { mode: 'no-cors' })); 
+
+                    // Fetch varieties
+                    if (sData.varieties && sData.varieties.length > 0) {
+                         const pName = pData.name;
+                         if (!formsMap[pName]) formsMap[pName] = {};
+                         await Promise.all(sData.varieties.map(async (v) => {
+                             if (v.is_default) return; 
+                             let formName = v.pokemon.name.replace(pName + '-', '');
+                             try {
+                                 const vRes = await fetch(v.pokemon.url);
+                                 const vData = await vRes.json();
+                                 // HD FIX
+                                // HD FIX: Save Official Artwork to storage
+                                 const hdNormal = vData.sprites.other['official-artwork'].front_default || vData.sprites.front_default;
+                                 const hdShiny = vData.sprites.other['official-artwork'].front_shiny || vData.sprites.front_shiny;
+
+                                 // Cache the HD images so they work offline
+                                 if(hdNormal) fetch(hdNormal, { mode: 'no-cors' });
+                                 if(hdShiny) fetch(hdShiny, { mode: 'no-cors' });
+
+                                 if(!formsMap[pName][formName]) formsMap[pName][formName] = {};
+                                 formsMap[pName][formName].normal = hdNormal;
+                                 formsMap[pName][formName].shiny = hdShiny;
+                             } catch(err) {}
+                         }));
+                    }
+                    // SAVE TO 'details' STORE
+                    await dbHelper.save('details', { id: id, pokemon: pData, species: sData, encounters: encData, evolution: evoData, timestamp: Date.now() });
+                } catch(e) { console.warn(`Failed to sync ID ${id}`, e); } 
+            }));
+            
+            try { localStorage.setItem(CONFIG.FORMS_CACHE_KEY, JSON.stringify(formsMap)); } catch(e) {}
+            completed += batch.length; 
+            const pct = Math.min(90, (completed / ids.length) * 100); // Save 10% for Moves/Abilities
+            els.dlCount.innerText = `MON: ${Math.min(completed, ids.length)}`; 
+            els.dlBar.style.width = `${pct}%`;
+        }
+
+        // PHASE 2: MOVES & ABILITIES (Smart Batching)
+        els.timeRem.innerText = "Syncing Moves/Abilities DB...";
+        try {
+            // 1. Fetch Lists (Limit 2000 to get all)
+            const [mListRes, aListRes] = await Promise.all([
+                fetch('https://pokeapi.co/api/v2/move?limit=2000'),
+                fetch('https://pokeapi.co/api/v2/ability?limit=2000')
+            ]);
+            const mList = await mListRes.json();
+            const aList = await aListRes.json();
+            
+            // 2. Filter Process (Moves)
+            let mCompleted = 0;
+            const mTotal = mList.results.length;
+            const mBatchSize = 10;
+            
+            for(let i=0; i < mTotal; i+=mBatchSize) {
+                const batch = mList.results.slice(i, i+mBatchSize);
+                await Promise.all(batch.map(async (m) => {
+                    try {
+                        // Check if exists first to save bandwidth on re-download? 
+                        // For simplicity, we overwrite to ensure freshness
+                        const r = await fetch(m.url);
+                        const d = await r.json();
+                        // Save minimal data to save space
+                        const minimalData = {
+                            name: d.name,
+                            accuracy: d.accuracy,
+                            power: d.power,
+                            pp: d.pp,
+                            type: { name: d.type.name },
+                            damage_class: { name: d.damage_class.name },
+                            flavor_text_entries: d.flavor_text_entries.filter(f => f.language.name === 'en')
+                        };
+                        await dbHelper.save('moves', minimalData);
+                    } catch(e){}
+                }));
+                mCompleted += batch.length;
+                els.dlCount.innerText = `MOVES: ${mCompleted}/${mTotal}`;
+            }
+
+            // 3. Filter Process (Abilities)
+            let aCompleted = 0;
+            const aTotal = aList.results.length;
+            
+            for(let i=0; i < aTotal; i+=mBatchSize) {
+                const batch = aList.results.slice(i, i+mBatchSize);
+                await Promise.all(batch.map(async (a) => {
+                    try {
+                        const r = await fetch(a.url);
+                        const d = await r.json();
+                        const minimalData = {
+                            name: d.name,
+                            effect_entries: d.effect_entries.filter(e => e.language.name === 'en'),
+                            flavor_text_entries: d.flavor_text_entries.filter(f => f.language.name === 'en')
+                        };
+                        await dbHelper.save('abilities', minimalData);
+                    } catch(e){}
+                }));
+                aCompleted += batch.length;
+                els.dlCount.innerText = `ABILITIES: ${aCompleted}/${aTotal}`;
+            }
+
+        } catch(e) { console.error("Aux Data Sync Failed", e); }
+
+        els.dlBar.style.width = `100%`;
+        els.dlBtn.innerHTML = "<i class='fas fa-check'></i> COMPLETE"; 
+        els.timeRem.innerText = "All Data Secured"; 
+        triggerHaptic(); 
+        setTimeout(() => { els.dlProgress.style.display = 'none'; els.dlBtn.disabled = false; }, 4000);
+    };
+
+    function applyFiltersAndRender(reset = false) {
+        if (reset) {
+            filteredList = allPokemon;
+            if (activeFilters.search) filteredList = filteredList.filter(p => p.name.includes(activeFilters.search) || p.id.toString() === activeFilters.search);
+            if (activeFilters.category !== 'all') {
+                if(activeFilters.category.startsWith('gen')) { 
+                    const genMap = {gen1:[1,151], gen2:[152,251], gen3:[252,386], gen4:[387,493], gen5:[494,649], gen6:[650,721], gen7:[722,809], gen8:[810,905], gen9:[906,1025]};
+                    const range = genMap[activeFilters.category];
+                    filteredList = filteredList.filter(p => p.id >= range[0] && p.id <= range[1]);
+                }
+                else if(activeFilters.category === 'legendary') filteredList = filteredList.filter(p => p.isLegendary); 
+                else if(activeFilters.category === 'mythical') filteredList = filteredList.filter(p => p.isMythical);
+            }
+            if (activeFilters.type1) filteredList = filteredList.filter(p => p.types && p.types.includes(activeFilters.type1));
+            if (activeFilters.type2) filteredList = filteredList.filter(p => p.types && p.types.includes(activeFilters.type2));
+            els.dexGrid.innerHTML = ''; currentOffset = 0;
+        }
+        renderBatch();
+    }
+
+    function renderBatch() {
+        const batch = filteredList.slice(currentOffset, currentOffset + BATCH_SIZE);
+        const frag = document.createDocumentFragment();
+        batch.forEach(p => {
+            const card = document.createElement('div'); card.className = 'dex-card';
+            card.innerHTML = `<div class="id">#${String(p.id).padStart(3,'0')}</div><img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${p.id}.png" loading="lazy"><div class="name">${p.name}</div>`;
+            card.onclick = () => openPokemonDetail(p.id); frag.appendChild(card);
+        });
+        els.dexGrid.appendChild(frag); currentOffset += batch.length;
+    }
+// --- NEW EVOLUTION PARSER ---
+    function renderEvolutionChain(chainData) {
+    if (!chainData || !chainData.chain) return '<div style="padding:15px; text-align:center; opacity:0.6;">No evolution data available.</div>';
+
+    let html = '<div class="evo-container">';
+    
+    // Recursive function to traverse the tree
+    function traverse(node) {
+        if (!node.evolves_to || node.evolves_to.length === 0) return [];
+        
+        let rows = [];
+        node.evolves_to.forEach(next => {
+            // 1. Get Details
+            const details = next.evolution_details[0];
+            let conditionText = 'Unknown';
+            
+            if (details) {
+                if (details.min_level) conditionText = `Lvl ${details.min_level}`;
+                else if (details.item) conditionText = details.item.name.replace(/-/g, ' ');
+                else if (details.trigger.name === 'trade') conditionText = 'Trade';
+                else if (details.min_happiness) conditionText = 'Friendship';
+                else if (details.location) conditionText = details.location.name.replace(/-/g, ' ');
+                else if (details.known_move_type) conditionText = `${details.known_move_type.name} Move`;
+                else if (details.time_of_day) conditionText = details.time_of_day;
+                else conditionText = 'Special'; // Fallback
+            }
+
+            // 2. Build the visual row for this specific step
+            // We strip the ID from the URL to allow clicking
+            const currentId = node.species.url.split('/').slice(-2, -1)[0];
+            const nextId = next.species.url.split('/').slice(-2, -1)[0];
+
+            let rowHtml = `
+                <div class="evo-row">
+                    <div class="evo-stage" onclick="openPokemonDetail(${currentId})">
+                        <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${currentId}.png">
+                        <div class="evo-name">${node.species.name}</div>
+                    </div>
+                    <div class="evo-arrow">
+                        <div class="evo-condition">${conditionText}</div>
+                        <i class="fas fa-arrow-right"></i>
+                    </div>
+                    <div class="evo-stage" onclick="openPokemonDetail(${nextId})">
+                        <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${nextId}.png">
+                        <div class="evo-name">${next.species.name}</div>
+                    </div>
+                </div>`;
+            
+            rows.push(rowHtml);
+            
+            // 3. Go deeper (recursion for stage 3)
+            const children = traverse(next);
+            rows = rows.concat(children);
+        });
+        return rows;
+    }
+
+    const builtRows = traverse(chainData.chain);
+    
+    if (builtRows.length === 0) {
+        // Handle single stage pokemon (e.g. Kangaskhan)
+        const id = chainData.chain.species.url.split('/').slice(-2, -1)[0];
+        html += `<div class="evo-row" style="justify-content:center; opacity:0.8;">
+                    <div class="evo-stage" onclick="openPokemonDetail(${id})">
+                        <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png">
+                        <div class="evo-name">${chainData.chain.species.name}</div>
+                    </div>
+                    <div style="font-size:0.8rem; color:var(--text-muted); margin-left:15px;">Does not evolve.</div>
+                 </div>`;
+    } else {
+        html += builtRows.join('');
+    }
+
+    html += '</div>';
+    return html;
+}
+   async function openPokemonDetail(id) {
+        triggerHaptic(); 
+        els.modal.classList.add('open');
+        els.modalContent.innerHTML = '<div style="display:flex;justify-content:center;padding:50px;"><div class="holo-ring"></div></div>';
+        
+        try {
+            let p, spec, encRes, evoData;
+
+            // 1. DATA FETCHING (Online vs Offline)
+            if (navigator.onLine) {
+                try {
+                    const [pR, sR] = await Promise.all([
+                        fetch(`https://pokeapi.co/api/v2/pokemon/${id}`),
+                        fetch(`https://pokeapi.co/api/v2/pokemon-species/${id}`)
+                    ]);
+                    p = await pR.json(); spec = await sR.json();
+                    encRes = await fetch(`https://pokeapi.co/api/v2/pokemon/${id}/encounters`).then(r=>r.ok?r.json():[]).catch(()=>[]);
+                    evoData = spec.evolution_chain?.url ? await fetch(spec.evolution_chain.url).then(r=>r.ok?r.json():{chain:null}).catch(()=>({chain:null})) : {chain:null};
+                } catch(netErr) {
+                    // Fallback to offline DB if fetch fails mid-way
+                    const offData = await dbHelper.get('details', id);
+                    if(offData) { p = offData.pokemon; spec = offData.species; encRes = offData.encounters; evoData = offData.evolution; }
+                    else throw netErr;
+                }
+            } else {
+                const offData = await dbHelper.get('details', id);
+                if(offData) { p = offData.pokemon; spec = offData.species; encRes = offData.encounters; evoData = offData.evolution; }
+                else throw new Error("Data not downloaded.");
+            }
+            
+            // 2. PREPARE SPRITES & DATA
+            window.SpriteController.pokemonData = p;
+            const currentSpriteType = window.SpriteController.currentType;
+            let initialSprite = p.sprites.other['official-artwork'].front_default;
+            
+            // Logic to pick sprite based on toggle preference
+            if(currentSpriteType === 'showdown') initialSprite = p.sprites.other.showdown.front_default || initialSprite;
+            else if(currentSpriteType === 'default') initialSprite = p.sprites.front_default || initialSprite;
+            if(!initialSprite) initialSprite = p.sprites.front_default;
+
+            const flavor = spec.flavor_text_entries.find(e => e.language.name === 'en')?.flavor_text.replace(/[\n\f]/g,' ') || "No data.";
+            const abilitiesHtml = p.abilities.map(a => `<div class="ability-card" onclick="showAbilityInfo('${a.ability.url}')"><div class="ability-name-text">${a.ability.name.replace('-',' ')}</div><div class="ability-meta">${a.is_hidden ? 'HIDDEN' : 'STANDARD'}</div></div>`).join('');
+            
+            // Gimmick Badges (Mega, Legendary, etc.)
+            let gimmickHtml = ''; 
+            if (spec.is_legendary || LEGENDARY_IDS.includes(id)) gimmickHtml += '<div class="gimmick-badge legend">LEGENDARY</div>';
+            if (spec.is_mythical || MYTHICAL_IDS.includes(id)) gimmickHtml += '<div class="gimmick-badge myth">MYTHICAL</div>';
+            if (spec.varieties.some(v => v.pokemon.name.includes('-mega'))) gimmickHtml += '<div class="gimmick-badge mega">MEGA</div>';
+            if (spec.varieties.some(v => v.pokemon.name.includes('-gmax'))) gimmickHtml += '<div class="gimmick-badge gmax">GMAX</div>';
+
+            const eggGroups = spec.egg_groups.map(g => g.name).join(', ').toUpperCase();
+            const genderRate = spec.gender_rate === -1 ? 'Genderless' : `<span style="color:#2196f3"><i class="fas fa-mars"></i> ${(1 - spec.gender_rate/8)*100}%</span>  <span style="color:#e91e63; margin-left:8px;"><i class="fas fa-venus"></i> ${(spec.gender_rate/8)*100}%</span>`;
+
+            // Relations Calculation
+            const relations = calculateRelations(p.types);
+            const renderRelGroup = (mult, label, color) => {
+                if (relations[mult].length === 0) return '';
+                return `<div class="relation-group"><div class="relation-label"><span>${label}</span> <span style="color:${color}">x${mult}</span></div><div class="type-row">${relations[mult].map(t => `<span class="mini-type-pill type-${t}">${t}</span>`).join('')}</div></div>`;
+            };
+
+            // 3. BUILD FORMS LIST (Base + Mega/Regional)
+            let formsHtml = `
+                <div class="sprite-box" onclick="SpriteViewer.open('${p.sprites.front_default}', '${p.name} Normal')">
+                    <span class="form-tag">NORM</span><img src="${p.sprites.front_default}"><div class="sprite-label">Default</div>
+                </div>`;
+            if (p.sprites.front_shiny) formsHtml += `
+                <div class="sprite-box" onclick="SpriteViewer.open('${p.sprites.front_shiny}', '${p.name} Shiny')" style="border-color:rgba(255,215,0,0.3);">
+                    <span class="form-tag" style="background:#b8860b">SHNY</span><i class="fas fa-star shiny-icon"></i><img src="${p.sprites.front_shiny}"><div class="sprite-label" style="color:#e6c200">Shiny</div>
+                </div>`;
+            
+            // Check local storage for pre-downloaded Forms (Megas, etc.)
+            const formsMap = JSON.parse(localStorage.getItem(CONFIG.FORMS_CACHE_KEY) || '{}');
+            const storedForms = formsMap[p.name];
+            let formsLoaded = false;
+
+            if (storedForms) {
+                Object.keys(storedForms).forEach(formType => {
+                     const data = storedForms[formType];
+                     if(data.normal) formsHtml += `<div class="sprite-box" onclick="SpriteViewer.open('${data.normal}', '${p.name} ${formType}')"><span class="form-tag">${formType.substring(0,4).toUpperCase()}</span><img src="${data.normal}"><div class="sprite-label">${formType}</div></div>`;
+                     if(data.shiny) formsHtml += `<div class="sprite-box" onclick="SpriteViewer.open('${data.shiny}', '${p.name} ${formType} Shiny')" style="border-color:rgba(255,215,0,0.3);"><span class="form-tag" style="background:#b8860b">SHNY</span><i class="fas fa-star shiny-icon"></i><img src="${data.shiny}"><div class="sprite-label" style="color:#e6c200">${formType}</div></div>`;
+                });
+                formsLoaded = true;
+            }
+
+            // 4. BUILD ENCOUNTER UI
+            let encHtml = '';
+            if (!encRes || encRes.length === 0) {
+                encHtml = '<div style="padding:20px; text-align:center; color:var(--text-muted); font-style:italic;">Cannot be found in the wild.</div>';
+            } else {
+                 const versions = {};
+                 encRes.forEach(enc => enc.version_details.forEach(vd => versions[vd.version.name] = true));
+                 const versionOpts = Object.keys(versions).map(v => `<option value="${v}">${formatGameName(v)}</option>`).join('');
+                 
+                 encHtml = `<div style="padding:15px; text-align:center; color:var(--text-muted); font-size:0.8rem;">Select game version below.</div>
+                 <div class="encounter-select-wrapper">
+                    <select class="glass-select" onchange="updateEncounterList(this, '${encodeURIComponent(JSON.stringify(encRes))}')">
+                        <option value="">Select Version</option>${versionOpts}
+                    </select>
+                    <i class="fas fa-chevron-down" style="position:absolute; right:15px; top:50%; transform:translateY(-50%); pointer-events:none; color:var(--text-muted);"></i>
+                 </div>
+                 <div id="encounter-list-content" class="encounter-list"></div>`;
+            }
+
+            // 5. GENERATE SECTIONS HTML
+            const evoSectionHtml = renderEvolutionChain(evoData);
+            
+            const headerSection = `
+                <div style="text-align:center; padding-bottom:20px;">
+                    <div class="sprite-toggle-wrapper">
+                        <div class="sprite-toggle">
+                            <button class="toggle-btn ${currentSpriteType==='official'?'active':''}" id="btn-official" onclick="SpriteController.toggle('official', 'main-sprite')">ART</button>
+                            <button class="toggle-btn ${currentSpriteType==='showdown'?'active':''}" id="btn-showdown" onclick="SpriteController.toggle('showdown', 'main-sprite')">ANIM</button>
+                            <button class="toggle-btn ${currentSpriteType==='default'?'active':''}" id="btn-default" onclick="SpriteController.toggle('default', 'main-sprite')">PIXEL</button>
+                        </div>
+                    </div>
+                   <div style="position:relative; display:inline-block;">
+                        <img id="main-sprite" class="main-sprite" src="${initialSprite}" onclick="SpriteViewer.open(this.src, '${p.name}')" style="width:180px; height:180px; filter:drop-shadow(0 10px 10px rgba(0,0,0,0.2));">
+                        <button id="cry-btn-anim" class="cry-btn" onclick="playCry(${p.id}); event.stopPropagation();">
+                            <i class="fas fa-volume-up"></i>
+                        </button>
+                    </div>
+                    <h1 style="text-transform:capitalize; margin:10px 0; font-family:'Orbitron';">${p.name}</h1>
+                    <div style="display:flex; justify-content:center; gap:5px;">${p.types.map(t => `<span class="mini-type-pill type-${t.type.name}" style="font-size:0.8rem; padding:4px 10px;">${t.type.name}</span>`).join('')}</div>
+                    <div class="gimmick-row">${gimmickHtml}</div>
+                </div>`;
+            
+            const bioSection = `
+                <div class="glass-panel" style="padding:20px; margin-bottom:15px;">
+                    <h3 class="section-title"><i class="fas fa-dna"></i> GENETICS</h3>
+                    <p style="font-style:italic; margin-bottom:20px;">"${flavor}"</p>
+                    <div class="info-grid">
+                        <div class="info-item"><div class="info-label">GENERATION</div><div class="info-value">GEN ${spec.generation.name.split('-')[1].toUpperCase()}</div></div>
+                        <div class="info-item"><div class="info-label">EGG GROUPS</div><div class="info-value" style="font-size:0.8rem;">${eggGroups}</div></div>
+                        <div class="info-item"><div class="info-label">HEIGHT</div><div class="info-value">${p.height/10}m</div></div>
+                        <div class="info-item"><div class="info-label">WEIGHT</div><div class="info-value">${p.weight/10}kg</div></div>
+                        <div class="info-item" style="grid-column: 1/-1"><div class="info-label">GENDER RATIO</div><div class="info-value">${genderRate}</div></div>
+                    </div>
+                    <div class="ability-box-container">${abilitiesHtml}</div>
+                    <h3 class="section-title" style="margin-top:20px;"><i class="fas fa-images"></i> FORMS & VARIANTS</h3>
+                    <div class="sprite-showcase" id="forms-container">${formsHtml}</div>
+                </div>`;
+
+            const evoCard = `<div class="glass-panel" style="padding:20px; margin-bottom:15px;">
+                                <h3 class="section-title"><i class="fas fa-project-diagram"></i> EVOLUTION</h3>
+                                ${evoSectionHtml}
+                             </div>`;
+
+            const combatSection = `<div class="glass-panel" style="padding:20px; margin-bottom:15px;"><h3 class="section-title"><i class="fas fa-shield-alt"></i> DEFENSES</h3><div style="background:rgba(0,0,0,0.02); border-radius:10px; padding:10px;">${renderRelGroup(4,'Double Weak','#ff4d4d')}${renderRelGroup(2,'Weak','#ff9800')}${renderRelGroup(0.5,'Resist','#4caf50')}${renderRelGroup(0,'Immune','#2196f3')}</div></div>`;
+            
+            const statsSection = `<div class="glass-panel" style="padding:20px; margin-bottom:15px;"><h3 class="section-title">STATS</h3>${p.stats.map(s => `<div style="margin-bottom:8px;"><div style="display:flex; justify-content:space-between; font-size:0.8rem; text-transform:uppercase;"><span>${s.stat.name}</span><b>${s.base_stat}</b></div><div style="height:6px; background:rgba(0,0,0,0.1); border-radius:3px;"><div style="width:${Math.min(100,(s.base_stat/150)*100)}%; height:100%; background:var(--primary); border-radius:3px;"></div></div></div>`).join('')}</div>`;
+            
+            const encounterSection = `<div class="glass-panel" style="padding:20px; margin-bottom:15px;"><h3 class="section-title"><i class="fas fa-map-marked-alt"></i> LOCATIONS</h3>${encHtml}</div>`;
+            
+            // --- NEW MOVE SEARCH/SORT SECTION ---
+          // --- NEW: V2 MOVE UI (Filter Bar) ---
+            const moveSection = `
+                <div class="glass-panel" style="padding:20px; min-height:500px;">
+                    <h3 class="section-title"><i class="fas fa-fist-raised"></i> MOVES ANALYSIS</h3>
+                    
+                    <div class="move-controls-v2">
+                        <div class="move-search-box">
+                            <i class="fas fa-search" style="color:var(--text-muted)"></i>
+                            <input type="text" id="move-search" placeholder="Search move or type..." oninput="updateMoveFilters()">
+                        </div>
+
+                        <div class="move-chip-scroll">
+                            <button class="move-chip active" onclick="setMoveFilter('all', this)">ALL</button>
+                            <button class="move-chip" onclick="setMoveFilter('physical', this)">PHYSICAL</button>
+                            <button class="move-chip" onclick="setMoveFilter('special', this)">SPECIAL</button>
+                            <button class="move-chip" onclick="setMoveFilter('status', this)">STATUS</button>
+                            <button class="move-chip" onclick="setMoveFilter('level-up', this)">LEVEL UP</button>
+                            <button class="move-chip" onclick="setMoveFilter('machine', this)">TM / HM</button>
+                        </div>
+                    </div>
+
+                    <div id="moves-list-container"></div>
+                </div>`;
+           // 6. INJECT HTML
+           els.modalContent.innerHTML = headerSection + bioSection + evoCard + combatSection + statsSection + encounterSection + moveSection;
+
+            // 7. POST-RENDER ACTIONS
+            
+            // A. Fetch extra forms if online and not in cache
+            if (!formsLoaded && navigator.onLine && spec.varieties.length > 1) {
+                const container = document.getElementById('forms-container');
+                const spinner = document.createElement('div');
+                spinner.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Checking forms...';
+                spinner.style.cssText = 'padding:10px; font-size:0.8rem; opacity:0.7;';
+                container.appendChild(spinner);
+
+                Promise.all(spec.varieties.map(async (v) => {
+                    if (v.is_default) return;
+                    try {
+                        const vRes = await fetch(v.pokemon.url);
+                        const vData = await vRes.json();
+                        let formType = v.pokemon.name.replace(p.name + '-', '');
+                        // Prefer HD for live fetch
+                        const fSprite = vData.sprites.other['official-artwork'].front_default || vData.sprites.front_default;
+                        const sSprite = vData.sprites.other['official-artwork'].front_shiny || vData.sprites.front_shiny;
+
+                        let html = '';
+                        if(fSprite) html += `<div class="sprite-box" onclick="SpriteViewer.open('${fSprite}', '${p.name} ${formType}')"><span class="form-tag">${formType.substring(0,4).toUpperCase()}</span><img src="${fSprite}"><div class="sprite-label">${formType}</div></div>`;
+                        if(sSprite) html += `<div class="sprite-box" onclick="SpriteViewer.open('${sSprite}', '${p.name} ${formType} Shiny')" style="border-color:rgba(255,215,0,0.3);"><span class="form-tag" style="background:#b8860b">SHNY</span><i class="fas fa-star shiny-icon"></i><img src="${sSprite}"><div class="sprite-label" style="color:#e6c200">${formType}</div></div>`;
+                        return html;
+                    } catch(e) { return ''; }
+                })).then(results => {
+                    spinner.remove();
+                    container.innerHTML += results.join('');
+                });
+            }
+
+            // B. Initialize the Move List Controller (Async)
+            initMoveList(p.moves);
+
+        } catch(e) { 
+            console.error(e);
+            els.modalContent.innerHTML = '<div style="text-align:center; padding:50px; color:var(--primary);">DATA ERROR<br><span style="color:var(--text-muted); font-size:0.8rem;">Could not retrieve data from Network or Database.</span></div>';
+        }
+    }
+    function initChipGlider() { const active = document.querySelector('.filter-chip.active'); if(active) moveChipGliderTo(active); }
+    function moveChipGliderTo(element) { els.chipGlider.style.width = `${element.offsetWidth}px`; els.chipGlider.style.transform = `translateX(${element.offsetLeft}px)`; element.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' }); }
+
+    window.openPokemonDetail = (id) => openPokemonDetail(id); window.showAbilityInfo = (url) => showAbilityInfo(url);
+    
+    function renderTeam(){
+        els.teamSlots.innerHTML=''; const teamStats={weaknesses:{}}; let filledSlots=0;
+        team.forEach((p,index)=>{
+            const slot=document.createElement('div');
+            if(p){
+                filledSlots++; slot.className='team-slot filled';
+                slot.innerHTML=`<div class="slot-remove"><i class="fas fa-times"></i></div><img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${p.id}.png"><div class="slot-name">${p.name}</div><div style="display:flex; gap:3px;">${p.types.map(t=>`<div class="type-${t}" style="width:8px; height:8px; border-radius:50%;"></div>`).join('')}</div>`;
+                slot.querySelector('.slot-remove').onclick=(e)=>{ e.stopPropagation(); triggerHaptic(); team[index]=null;renderTeam(); };
+                p.types.forEach(t=>{ allTypes.forEach(atk=>{ let m=1; p.types.forEach(dt=>{if(typeChart[atk]&&typeChart[atk][dt]!==undefined)m*=typeChart[atk][dt];}); if(m>1) teamStats.weaknesses[atk]=(teamStats.weaknesses[atk]||0)+1; }); });
+            }else{ slot.className='team-slot'; slot.innerHTML=`<i class="fas fa-plus" style="font-size:1.5rem; opacity:0.3;"></i>`; slot.onclick=()=>openMiniSearch(index); }
+            els.teamSlots.appendChild(slot);
+        });
+        localStorage.setItem(CONFIG.TEAM_KEY,JSON.stringify(team)); analyzeTeam(teamStats,filledSlots);
+    }
+
+    function analyzeTeam(stats, count){
+        if(count===0){ els.teamThreats.innerHTML='<p style="color:var(--text-muted); font-size:0.8rem;">Add Pokemon to see weaknesses.</p>'; els.teamSuggestions.innerHTML=''; return; }
+        const threats = Object.entries(stats.weaknesses).sort((a,b)=>b[1]-a[1]).slice(0,3);
+        if(threats.length===0){ els.teamThreats.innerHTML='<div style="color:#4caf50; font-weight:bold;">Balanced Defense!</div>'; return; }
+        els.teamThreats.innerHTML = threats.map(([t,c]) => `<div style="display:flex; align-items:center; gap:10px; margin-bottom:5px;"><span class="mini-type-pill type-${t}" style="width:60px; text-align:center;">${t}</span><div style="flex:1; height:6px; background:rgba(0,0,0,0.1); border-radius:3px;"><div style="width:${(c/6)*100}%; height:100%; background:${(c>2)?'#ff4d4d':'#ff9800'}; border-radius:3px;"></div></div><span style="font-weight:bold; color:${(c>2)?'#ff4d4d':'#ff9800'};">${c}x</span></div>`).join('');
+        const major = threats[0][0]; const counters = allTypes.filter(t => typeChart[major] && typeChart[major][t] < 1).slice(0,5);
+        els.teamSuggestions.innerHTML = `<div style="width:100%; font-size:0.8rem; margin-bottom:5px;">Counter <b>${major.toUpperCase()}</b> with:</div>` + counters.map(t => `<div class="suggestion-chip type-${t}">${t}</div>`).join('');
+    }
+
+    function renderTypeCards() {
+        els.typeAnalysisList.innerHTML = '';
+        allTypes.forEach(mainType => {
+            const offSuper = [], offNotVery = [], offNoEffect = []; const defWeak = [], defResist = [], defImmune = [];
+            allTypes.forEach(t => { const mod = typeChart[mainType]?.[t] ?? 1; if(mod === 2) offSuper.push(t); else if(mod === 0.5) offNotVery.push(t); else if(mod === 0) offNoEffect.push(t); });
+            allTypes.forEach(atk => { const mod = typeChart[atk]?.[mainType] ?? 1; if(mod === 2) defWeak.push(atk); else if(mod === 0.5) defResist.push(atk); else if(mod === 0) defImmune.push(atk); });
+            const genPills = (arr) => arr.length ? arr.map(t => `<span class="mini-type-pill type-${t}">${t}</span>`).join('') : '<span style="opacity:0.3; font-size:0.6rem;">None</span>';
+            const card = document.createElement('div'); card.className = 'type-card';
+            card.innerHTML = `<div class="type-card-header type-${mainType}"><div class="type-card-title">${mainType}</div><div class="type-stats-summary">${defWeak.length} Weaknesses | ${defResist.length} Resistances</div></div><div class="type-data-grid"><div class="type-panel"><div class="panel-title"><i class="fas fa-fist-raised"></i> OFFENSE</div><div class="data-label" style="margin-top:5px;"><i class="fas fa-check" style="color:#4caf50"></i> HITS HARD (2x)</div><div style="margin-bottom:8px;">${genPills(offSuper)}</div><div class="data-label"><i class="fas fa-times" style="color:#ff9800"></i> RESISTED BY (0.5x)</div><div style="margin-bottom:8px;">${genPills(offNotVery)}</div><div class="data-label"><i class="fas fa-ban" style="color:#333"></i> NO EFFECT (0x)</div><div>${genPills(offNoEffect)}</div></div><div class="type-panel"><div class="panel-title"><i class="fas fa-shield-alt"></i> DEFENSE</div><div class="data-label" style="margin-top:5px;"><i class="fas fa-exclamation-triangle" style="color:#ff4d4d"></i> WEAK TO (2x)</div><div style="margin-bottom:8px;">${genPills(defWeak)}</div><div class="data-label"><i class="fas fa-shield-alt" style="color:#4caf50"></i> RESISTS (0.5x)</div><div style="margin-bottom:8px;">${genPills(defResist)}</div><div class="data-label"><i class="fas fa-star" style="color:#2196f3"></i> IMMUNE (0x)</div><div>${genPills(defImmune)}</div></div></div>`;
+            els.typeAnalysisList.appendChild(card);
+        });
+    }
+
+    function setupInfiniteScroll() { new IntersectionObserver(entries => { if(entries[0].isIntersecting && currentOffset < filteredList.length) renderBatch(); }, { rootMargin: '200px' }).observe(els.sentinel); }
+
+    function setupEventListeners(){
+        document.querySelectorAll('.nav-item').forEach(btn => {
+            btn.addEventListener('click', () => {
+                triggerHaptic(); 
+                document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active')); btn.classList.add('active');
+                document.querySelectorAll('.view').forEach(v => v.classList.remove('active')); document.getElementById(btn.dataset.target).classList.add('active');
+            });
+        });
+        document.querySelectorAll('.view-content').forEach(viewContent => {
+            let startY = 0; let lastY = 0; let isDragging = false; let overscrollAmount = 0; const scrollWrapper = viewContent.querySelector('.scroll-force-wrapper');
+            viewContent.addEventListener('touchstart', (e) => { startY = e.touches[0].clientY; lastY = startY; isDragging = true; }, { passive: true });
+            viewContent.addEventListener('touchmove', (e) => {
+                if (!isDragging) return;
+                const currentY = e.touches[0].clientY; lastY = currentY;
+                const scrollTop = viewContent.scrollTop; const scrollHeight = viewContent.scrollHeight; const clientHeight = viewContent.clientHeight;
+                if (scrollTop === 0 && currentY > startY) {
+                    const dragDistance = currentY - startY; overscrollAmount = Math.min(dragDistance * 0.15, 80);
+                    scrollWrapper.style.transform = `scaleY(${1 + overscrollAmount / 800}) translateY(${overscrollAmount}px)`; scrollWrapper.style.transition = 'none';
+                } else if (scrollTop + clientHeight >= scrollHeight - 5 && currentY < startY) {
+                    const dragDistance = Math.abs(currentY - startY); overscrollAmount = Math.min(dragDistance * 0.15, 80);
+                    scrollWrapper.style.transform = `scaleY(${1 + overscrollAmount / 800}) translateY(-${overscrollAmount}px)`; scrollWrapper.style.transition = 'none';
+                } else { overscrollAmount = 0; scrollWrapper.style.transform = 'scaleY(1) translateY(0)'; scrollWrapper.style.transition = 'none'; }
+            }, { passive: true });
+            viewContent.addEventListener('touchend', (e) => { isDragging = false; scrollWrapper.style.transition = 'transform 0.35s cubic-bezier(0.4, 0, 0.2, 1)'; scrollWrapper.style.transform = 'scaleY(1) translateY(0)'; overscrollAmount = 0; startY = 0; lastY = 0; }, { passive: true });
+        });
+        
+        els.searchInput.addEventListener('input', (e) => { activeFilters.search = e.target.value.toLowerCase(); applyFiltersAndRender(true); });
+        
+        els.filterChips.forEach(chip => { chip.addEventListener('click', () => { 
+            triggerHaptic(); 
+            els.filterChips.forEach(c => c.classList.remove('active')); chip.classList.add('active'); moveChipGliderTo(chip); activeFilters.category = chip.dataset.cat; applyFiltersAndRender(true); 
+        }); });
+        
+        document.getElementById('open-filter-btn').onclick = () => { triggerHaptic(); els.filterSheet.classList.add('open'); };
+        document.getElementById('apply-filters-btn').onclick = () => { activeFilters.type1 = els.filterType1.value; activeFilters.type2 = els.filterType2.value; applyFiltersAndRender(true); closeModal(els.filterSheet); };
+        document.getElementById('theme-select').addEventListener('change', (e) => { 
+            triggerHaptic(); 
+            document.body.className = e.target.value; localStorage.setItem(CONFIG.THEME_KEY, e.target.value); 
+        });
+        els.hapticToggle.addEventListener('change', (e) => { hapticsEnabled = e.target.checked; localStorage.setItem(CONFIG.HAPTIC_KEY, hapticsEnabled); if(hapticsEnabled) triggerHaptic(); });
+        document.getElementById('clear-data-btn').onclick = () => { if(confirm('Reset all data? This will trigger a re-download.')) { localStorage.clear(); location.reload(); } };
+        document.getElementById('flux-btn').onclick = () => { triggerHaptic(); if(allPokemon.length) openPokemonDetail(allPokemon[Math.floor(Math.random()*allPokemon.length)].id); };
+        document.getElementById('team-search-input').addEventListener('input', (e)=>{ 
+            const q = e.target.value.toLowerCase(); if(q.length < 2) return; 
+            const res = allPokemon.filter(p => p.name.includes(q)).slice(0,15); 
+            els.miniSearchResults.innerHTML = ''; 
+            res.forEach(p => { const div = document.createElement('div'); div.className = 'mini-result-item'; div.innerHTML = `<img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${p.id}.png"><b>${p.name}</b>`; div.onclick = () => { triggerHaptic(); team[activeSlotIndex] = p; renderTeam(); closeModal(els.miniSearchModal); }; els.miniSearchResults.appendChild(div); }); 
+        });
+        window.onclick = (e) => { if (e.target.classList.contains('modal')) closeModal(e.target); };
+        document.querySelectorAll('.close-btn, .close-modal-btn').forEach(btn => { btn.onclick = (e) => { const modal = e.target.closest('.modal'); if(modal) closeModal(modal); } });
+        window.addEventListener('resize', () => initChipGlider());
+    }
+
+    function openMiniSearch(index){ activeSlotIndex=index; els.miniSearchModal.classList.add('open'); document.getElementById('team-search-input').value=''; els.miniSearchResults.innerHTML=''; setTimeout(()=>document.getElementById('team-search-input').focus(), 100); }
+    function closeModal(modal) { if (!modal) return; triggerHaptic(); modal.classList.add('closing'); setTimeout(() => { modal.classList.remove('open'); modal.classList.remove('closing'); }, 250); }
+    // --- MOVE LIST CONTROLLER ---
+ // --- MOVE LIST CONTROLLER V2 (Filter System) ---
+    window.currentMoveData = []; 
+    window.activeMoveFilter = 'all'; // State for the chips
+
+  window.initMoveList = async (rawMoves) => {
+        const container = document.getElementById('moves-list-container');
+        if(!container) return;
+        
+        container.innerHTML = '<div style="padding:20px; text-align:center;"><div class="holo-ring"></div><div style="font-size:0.7rem; margin-top:10px; opacity:0.7;">Analyzing Move Data...</div></div>';
+        
+        // Reset Filter State
+        window.activeMoveFilter = 'all';
+        document.querySelectorAll('.move-chip').forEach(c => c.classList.remove('active'));
+        document.querySelector('.move-chip').classList.add('active'); // Highlight "ALL"
+        
+        // 1. Process basic data
+        window.currentMoveData = rawMoves.map(m => {
+            const details = m.version_group_details[m.version_group_details.length - 1]; 
+            return {
+                name: m.move.name,
+                url: m.move.url,
+                level: details.move_learn_method.name === 'level-up' ? details.level_learned_at : 999,
+                method: details.move_learn_method.name,
+                type: 'unknown',
+                class: 'unknown',
+                power: 0,
+                history: m.version_group_details
+            };
+        });
+
+        // 2. SMART ENRICHMENT: Check DB -> If missing, Check Network
+        // We do this in batches to avoid freezing the UI
+        const batchProcess = async () => {
+            let updatedCount = 0;
+            
+            // Create a pool of promises to fetch data faster
+            const promises = window.currentMoveData.map(async (move) => {
+                try {
+                    // A. Try Offline DB first (Fastest)
+                    let data = await dbHelper.get('moves', move.name);
+                    
+                    // B. If missing & Online, Fetch Live (Fallback)
+                    if (!data && navigator.onLine) {
+                        const res = await fetch(move.url);
+                        const liveData = await res.json();
+                        
+                        // Format for DB
+                        data = {
+                            name: liveData.name,
+                            accuracy: liveData.accuracy,
+                            power: liveData.power,
+                            pp: liveData.pp,
+                            type: { name: liveData.type.name },
+                            damage_class: { name: liveData.damage_class.name },
+                            flavor_text_entries: liveData.flavor_text_entries.filter(f => f.language.name === 'en')
+                        };
+                        
+                        // Save it for next time so we don't fetch again
+                        dbHelper.save('moves', data); 
+                    }
+
+                    if (data) {
+                        move.type = data.type.name;
+                        move.class = data.damage_class.name;
+                        move.power = data.power || 0;
+                        updatedCount++;
+                    }
+                } catch (e) { /* Ignore errors for individual moves */ }
+            });
+
+            await Promise.all(promises);
+            
+            // 3. Render Final List
+            updateMoveFilters();
+        };
+
+        // Start the process
+        batchProcess();
+    };
+    // Helper to switch filters
+    window.setMoveFilter = (category, btn) => {
+        triggerHaptic();
+        window.activeMoveFilter = category;
+        
+        // Update visual buttons
+        document.querySelectorAll('.move-chip').forEach(c => c.classList.remove('active'));
+        if(btn) btn.classList.add('active');
+        
+        updateMoveFilters();
+    };
+window.updateMoveFilters = () => {
+        const searchVal = document.getElementById('move-search').value.toLowerCase();
+        const container = document.getElementById('moves-list-container');
+        const filterCat = window.activeMoveFilter;
+        
+        // 1. FILTER LOGIC
+        let filtered = window.currentMoveData.filter(m => {
+            const matchesSearch = m.name.includes(searchVal) || (m.type !== 'unknown' && m.type.includes(searchVal));
+            
+            let matchesCategory = true;
+            if (filterCat === 'physical') matchesCategory = (m.class === 'physical');
+            else if (filterCat === 'special') matchesCategory = (m.class === 'special');
+            else if (filterCat === 'status') matchesCategory = (m.class === 'status');
+            else if (filterCat === 'level-up') matchesCategory = (m.method === 'level-up');
+            else if (filterCat === 'machine') matchesCategory = (m.method === 'machine');
+
+            return matchesSearch && matchesCategory;
+        });
+
+        // 2. SORT (Level first)
+        filtered.sort((a,b) => a.level - b.level);
+
+        // 3. RENDER
+        if(filtered.length === 0) {
+            container.innerHTML = '<div style="padding:40px; text-align:center; opacity:0.6; font-style:italic;">No moves match criteria.</div>';
+            return;
+        }
+
+        container.innerHTML = filtered.map(m => {
+            const historyHtml = m.history.map(vgd => `<div style="display:flex; justify-content:space-between; font-size:0.75rem; border-bottom:1px solid rgba(0,0,0,0.05); padding:4px 0;"><span>${formatGameName(vgd.version_group.name)}</span><span style="color:var(--primary); font-weight:bold;">${vgd.move_learn_method.name === 'level-up' ? 'Lvl '+vgd.level_learned_at : vgd.move_learn_method.name}</span></div>`).join('');
+            
+            // --- NEW BADGE LOGIC ---
+            let badgeHtml = '';
+            
+            // Type Badge (Uses existing .type-fire, .type-water classes)
+            if(m.type !== 'unknown') {
+                badgeHtml += `<span class="move-type-pill type-${m.type}">${m.type}</span>`;
+            }
+            
+            // Category Badge (Uses new .cat-physical classes)
+            if(m.class !== 'unknown') {
+                badgeHtml += `<span class="move-cat-pill cat-${m.class}">${m.class}</span>`;
+            }
+
+            return `
+            <div class="move-row" onclick="toggleMoveDetail(this, '${m.url}')" data-history="${encodeURIComponent(historyHtml)}" style="grid-template-columns: 1fr auto 20px;">
+                <div class="move-info">
+                    <div class="move-name">${m.name.replace(/-/g,' ')}</div>
+                    <div class="move-badges">${badgeHtml}</div>
+                </div>
+                <div style="font-size:0.8rem; font-weight:bold; color:var(--text-muted); text-align:right;">
+                    ${m.method === 'level-up' ? 'Lvl <span style="color:var(--primary); font-size:1rem;">'+m.level+'</span>' : 'TM'}
+                </div>
+                <div style="text-align:right;"><i class="fas fa-chevron-down" style="font-size:0.8rem; opacity:0.5;"></i></div>
+                <div class="move-detail-row" data-loaded="false"></div>
+            </div>`;
+        }).join('');
+    };
+  init();
+</script>
+</body>
+</html>

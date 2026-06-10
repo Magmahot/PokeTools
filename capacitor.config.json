@@ -1,0 +1,19 @@
+{
+ "appId": "com.indicodes.poketools",
+  "appName": "Poketools",
+  "webDir": "Poketools",
+  "backgroundColor": "#050505", 
+  "plugins": {
+   "SplashScreen": {
+      "launchShowDuration": 0,
+      "launchAutoHide": true,
+      "backgroundColor": "#050505",
+      "androidSplashResourceName": "splash",
+      "showSpinner": false
+    },
+    "StatusBar": {
+      "overlaysWebView": true,
+      "style": "Dark"
+    }
+  }
+}
