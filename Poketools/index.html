@@ -666,6 +666,30 @@ body:not(.theme-default) .move-controls-v2 {
             </header>
             <div class="view-content">
                 <div class="scroll-force-wrapper">
+                    <div style="padding:15px;">
+                        <div class="glass-panel" style="padding:20px; border-radius:20px; margin-bottom:20px; border: var(--glass-border); box-shadow: var(--card-shadow);">
+                            <h3 style="margin-top:0; color:var(--primary); font-size:0.9rem; font-family:'Orbitron';"><i class="fas fa-calculator"></i> DYNAMIC ANALYZER</h3>
+                            <div style="display:flex; gap:10px; margin-bottom:15px;">
+                                <div style="flex:1;">
+                                    <label style="font-size:0.6rem; color:var(--text-muted); font-family:'Orbitron'; margin-bottom:5px; display:block;">TYPE 1</label>
+                                    <div style="position:relative;">
+                                        <select id="calc-type-1" class="glass-select" onchange="calculateDynamicWeakness()"></select>
+                                        <i class="fas fa-chevron-down" style="position:absolute; right:15px; top:50%; transform:translateY(-50%); pointer-events:none; color:var(--text-muted); font-size:0.8rem;"></i>
+                                    </div>
+                                </div>
+                                <div style="flex:1;">
+                                    <label style="font-size:0.6rem; color:var(--text-muted); font-family:'Orbitron'; margin-bottom:5px; display:block;">TYPE 2</label>
+                                    <div style="position:relative;">
+                                        <select id="calc-type-2" class="glass-select" onchange="calculateDynamicWeakness()">
+                                            <option value="none">NONE</option>
+                                        </select>
+                                        <i class="fas fa-chevron-down" style="position:absolute; right:15px; top:50%; transform:translateY(-50%); pointer-events:none; color:var(--text-muted); font-size:0.8rem;"></i>
+                                    </div>
+                                </div>
+                            </div>
+                            <div id="dynamic-type-results"></div>
+                        </div>
+                    </div>
                     <div class="type-analysis-container" id="type-analysis-list"></div>
                 </div>
             </div>
@@ -1014,12 +1038,49 @@ body:not(.theme-default) .move-controls-v2 {
         allTypes.forEach(attacker => {
             let multiplier = 1;
             types.forEach(defType => {
-                if (typeChart[attacker] && typeChart[attacker][defType.type.name] !== undefined) multiplier *= typeChart[attacker][defType.type.name];
+                if (typeChart[attacker] && typeChart[attacker][defType.type ? defType.type.name : defType] !== undefined) multiplier *= typeChart[attacker][defType.type ? defType.type.name : defType];
             });
             if (multiplier !== 1 && relations[multiplier]) relations[multiplier].push(attacker);
         });
         return relations;
     }
+
+    window.calculateDynamicWeakness = () => {
+        const t1 = document.getElementById('calc-type-1').value;
+        const t2 = document.getElementById('calc-type-2').value;
+        const resultsEl = document.getElementById('dynamic-type-results');
+        if(!resultsEl) return;
+
+        const types = [t1];
+        if (t2 !== 'none') types.push(t2);
+
+        const relations = { 4: [], 2: [], 1: [], 0.5: [], 0.25: [], 0: [] };
+
+        allTypes.forEach(attacker => {
+            let multiplier = 1;
+            types.forEach(defType => {
+                const mod = typeChart[attacker]?.[defType] ?? 1;
+                multiplier *= mod;
+            });
+            if (relations[multiplier] !== undefined) relations[multiplier].push(attacker);
+        });
+
+        const renderRelGroup = (mult, label, color) => {
+            if (!relations[mult] || relations[mult].length === 0) return '';
+            return `<div class="relation-group"><div class="relation-label" style="font-size:0.7rem; margin-bottom:5px; color:var(--text-muted); display:flex; justify-content:space-between;"><span>${label}</span> <span style="color:${color}; font-weight:bold;">x${mult}</span></div><div class="type-row" style="display:flex; flex-wrap:wrap; gap:5px; margin-bottom:10px;">${relations[mult].map(t => `<span class="mini-type-pill type-${t}">${t}</span>`).join('')}</div></div>`;
+        };
+
+        resultsEl.innerHTML = `
+            <div style="background:rgba(0,0,0,0.02); border-radius:10px; padding:10px; border:1px solid rgba(0,0,0,0.05);">
+                ${renderRelGroup(4, 'DOUBLE WEAK', '#ff4d4d')}
+                ${renderRelGroup(2, 'WEAK', '#ff9800')}
+                ${renderRelGroup(0.5, 'RESIST', '#4caf50')}
+                ${renderRelGroup(0.25, 'DOUBLE RESIST', '#2e7d32')}
+                ${renderRelGroup(0, 'IMMUNE', '#2196f3')}
+                ${relations[4].length === 0 && relations[2].length === 0 && relations[0.5].length === 0 && relations[0.25].length === 0 && relations[0].length === 0 ? '<div style="text-align:center; padding:10px; color:var(--text-muted); font-size:0.8rem;">No special multipliers for this combination.</div>' : ''}
+            </div>
+        `;
+    };
 
     function formatGameName(name) { return name.replace(/-/g, ' ').toUpperCase(); }
 
@@ -1125,6 +1186,13 @@ body:not(.theme-default) .move-controls-v2 {
         els.hapticToggle.checked = hapticsEnabled;
         const options = allTypes.map(t => `<option value="${t}">${t.toUpperCase()}</option>`).join('');
         els.filterType1.innerHTML += options; els.filterType2.innerHTML += options;
+
+        // Populate Dynamic Analyzer
+        const calc1 = document.getElementById('calc-type-1');
+        const calc2 = document.getElementById('calc-type-2');
+        if(calc1) calc1.innerHTML = options;
+        if(calc2) calc2.innerHTML += options;
+        window.calculateDynamicWeakness();
 
         const cachedData = localStorage.getItem(CONFIG.CACHE_KEY);
         if (cachedData) { 
